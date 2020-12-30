@@ -1,0 +1,61 @@
+##############################################################################
+################################ makefile-c ##################################
+##############################################################################
+#									     #
+#   complete makefile of SimpleMILPBlock                                     #
+#									     #
+#   The makefile defines internally all external libraries (comprised the    #
+#   SMS++ one) required by SimpleMILPBlock. Accordingly, all necessary OBJ,  #
+#   H, -I directives, external libraries + -L<libdirs> are added to the      #
+#   corresponding MMCF* macros.                                             #
+#                                                                            #
+#   Input:  $(CC)       = compiler command                                   #
+#           $(SW)       = compiler options                                   #
+#           $(MMCFSDR) = the directory where MMCFBlock source is           #
+#                                                                            #
+#   Output: $(MMCFOBJ) = the final object(s) / library                      #
+#           $(MMCFLIB) = external libraries + -L<libdirs>                   #
+#           $(MMCFH)   = the .h files to include for MMCFBlock        #
+#           $(MMCFINC) = the -I$( MMCFBlock directory )               #
+#                                                                            #
+#                                VERSION 1.00                                #
+#                               20 - 07 - 2018                               #
+#                                                                            #
+#                              Antonio Frangioni                             #
+#                          Operations Research Group                         #
+#                         Dipartimento di Informatica                        #
+#                             Universita' di Pisa                            #
+#									     #
+##############################################################################
+
+# define & include the necessary modules- - - - - - - - - - - - - - - - - - -
+# if a module is not used in the current configuration, just comment out the
+# corresponding include line
+# each module outputs some macros to be used here:
+# *OBJ is the final object/library
+# *H   is the list of all include files
+# *INC is the -I<include directories>
+
+# define input macros for SMS++ complete makefile, then include it
+SMS++SDR = $(MMCFSDR)../SMS++/
+include $(SMS++SDR)lib/makefile-c
+
+# define input macros for MCFblock complete makefile, then include it
+MCFBkSDR = $(MMCFSDR)../mcfblock/
+include $(MCFBkSDR)makefile-c
+
+# include the makefile requiring all external modules in input
+include $(MMCFSDR)/makefile
+
+# macroes to be exported- - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+# append external -I directives to MILPBINC, MILPBOBJ and MILPBH as defined
+# by the makefile, thus the := assignment has to be used (use GNU make)
+MMCFOBJ := $(MMCFOBJ) $(MCFBkOBJ) $(SMS++OBJ)
+MMCFH := $(MMCFH) $(MCFBkH) $(SMS++H)
+MMCFINC := $(SMS++INC) $(MCFBkINC)  $(MMCFINC)
+
+# external libreries for MMCFBlock
+MMCFLIB = $(SMS++LIB) $(MCFBkLIB)
+
+############################ End of makefile #################################
