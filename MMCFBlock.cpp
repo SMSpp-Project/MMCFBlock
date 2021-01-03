@@ -214,11 +214,6 @@ void MMCFBlock::load( std::istream &input )
 {
 
  instance_type = read_char( input );
- if( ( instance_type != 'm' ) && ( instance_type != 'p' ) && ( instance_type != 'd' )
- 	 && ( instance_type != 'o' ) && ( instance_type != 'u' ) && ( instance_type != 's' )
- 	 && ( instance_type != 'c' ) )
-   throw( std::invalid_argument( "invalid file type" ) );
-
  instance_name = read_string( input );
 
  char * cstr;
