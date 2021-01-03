@@ -5,3 +5,5 @@ test/MMCFtest
 .settings/language.settings.xml
 .project
 .cproject
+test/main.o
+test/main.o

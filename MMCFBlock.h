@@ -121,7 +121,7 @@ public:
 /** @name Other initializations
  *  @{ */
 
- virtual void load( const char *const filename , char filetype );
+ virtual void MakeMMCF( const char *const filename , char filetype );
 
 /*--------------------------------------------------------------------------*/
 
@@ -132,6 +132,12 @@ public:
 /*--------------------------------------------------------------------------*/
 /** @name Methods for reading the data of the MMCFBlock
   *  @{ */
+
+ inline char get_filetype( void ) const{ return( instance_type ); }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+ inline std::string get_filename( void ) const{ return( instance_name ); }
 
 /*--------------------------------------------------------------------------*/
   /// get the number of nodes
@@ -164,11 +170,13 @@ public:
  ///< print the MMCFBlock on an ostream with the given verbosity
 
 /*--------------------------------------------------------------------------*/
- void load( std::istream &input ) override {}
+ void load( std::istream &input ) override;
  ///< load the MMCFBlock out of an istream
  /**< Load the MMCFBlock out of an istream. The format is:
   *
   */
+
+/*--------------------------------------------------------------------------*/
 
  virtual void serialize( netCDF::NcGroup & file ) const override;
 
@@ -236,6 +244,9 @@ public:
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
 
  std::vector<FRowConstraint> MCs;  ///< the static mutual capacity constrs.
+
+ char instance_type;
+ std::string instance_name;
 
 /*--------------------------------------------------------------------------*/
 /*--------------------- PRIVATE PART OF THE CLASS --------------------------*/

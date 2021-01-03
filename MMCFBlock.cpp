@@ -70,6 +70,73 @@ using namespace SMSpp_di_unipi_it;
 /*----------------------------- FUNCTIONS ----------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+template< typename T>
+static void read_T( istream & iStrm , T & t )
+{
+ iStrm >> eatcomments;
+
+ int c = iStrm.peek();
+
+ switch( c ) {
+  case 'I' :
+  case 'i' : t = Inf<T>();
+             break;
+  case '-' : iStrm.get();
+             read_T( iStrm , t );
+             t = - t;
+             return;
+  case 'M' :
+  case 'm' : t = -Inf<T>();
+             break;
+  default :  iStrm >> t;
+             return;
+  }
+
+ do { c = iStrm.get(); c = iStrm.peek();
+  } while( ( c != iStrm.widen( ' ' ) ) &&
+	   ( c != iStrm.widen( '\n' ) ) &&
+	   ( c != iStrm.widen( '\t' ) ) );
+
+ }
+
+/*--------------------------------------------------------------------------*/
+
+static inline int read_int( istream & iStrm )
+{
+ int d;
+ read_T( iStrm , d );
+ return( d );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+static inline double read_dbl( istream & iStrm )
+{
+ double d;
+ read_T( iStrm , d );
+ return( d );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+static inline string read_string( istream & iStrm )
+{
+ iStrm >> eatcomments;
+ string s;
+ int c = iStrm.peek();
+ iStrm >> s;
+ return( s );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+static inline char read_char( istream & iStrm )
+{
+ double d;
+ read_T( iStrm , d );
+ return( d );
+ }
+
 /*--------------------------------------------------------------------------*/
 /*----------------------------- STATIC MEMBERS -----------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -143,7 +210,28 @@ void MMCFBlock::print( std::ostream &output ) const
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFBlock::load( const char *const filename , char filetype )
+void MMCFBlock::load( std::istream &input )
+{
+
+ instance_type = read_char( input );
+ if( ( instance_type != 'm' ) && ( instance_type != 'p' ) && ( instance_type != 'd' )
+ 	 && ( instance_type != 'o' ) && ( instance_type != 'u' ) && ( instance_type != 's' )
+ 	 && ( instance_type != 'c' ) )
+   throw( std::invalid_argument( "invalid file type" ) );
+
+ instance_name = read_string( input );
+
+ char * cstr;
+ cstr = new char[ instance_name.size()+1 ];
+ strcpy (cstr, instance_name.c_str());    //here str.c_str() generate null terminated char* pointer
+
+ MakeMMCF( cstr  , instance_type );
+
+ }
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
 {
  // check parameters- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
