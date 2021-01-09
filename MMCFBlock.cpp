@@ -132,7 +132,7 @@ static inline string read_string( istream & iStrm )
 
 static inline char read_char( istream & iStrm )
 {
- double d;
+ char d;
  read_T( iStrm , d );
  return( d );
  }
