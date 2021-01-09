@@ -214,13 +214,13 @@ void MMCFBlock::load( std::istream &input )
 {
 
  instance_type = read_char( input );
- instance_name = read_string( input );
+ /* instance_name = read_string( input );
 
  char * cstr;
  cstr = new char[ instance_name.size()+1 ];
  strcpy (cstr, instance_name.c_str());    //here str.c_str() generate null terminated char* pointer
 
- MakeMMCF( cstr  , instance_type );
+ MakeMMCF( cstr  , instance_type ); */
 
  }
 
@@ -1079,14 +1079,14 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
-
+ v_mcf.resize(NComm);
  for( Index k = 0 ; k< NComm ; k++ ) {
   if( PT[ k ] != kMCF )
    throw( std::logic_error( "MCF is implemented only " ) );
 
   Block *sMCFblock = Block::new_Block( "MCFBlock" );
-  v_mcf[ k ] = static_cast<MCFBlock * const>( sMCFblock );
 
+  v_mcf[ k ] = static_cast<MCFBlock *>( sMCFblock );
   v_mcf[ k ]->load( NNodes , NArcs , Startn , Endn ,
 		   U[ k ] , C[ k ] , B[ k ] );
 
