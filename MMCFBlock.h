@@ -235,7 +235,7 @@ public:
  MultiSubset ActiveK; ///< Like Active for individual capacities
  bool DrctdPrb;       ///< true if the problem is directed
  std::vector<MCFType> PT;  ///< type of flow subproblem
- std::vector< MCFBlock * > v_mcf;
+ // std::vector< MCFBlock * > v_mcf;
    ///< the vector of (pointers to) the components of the sum function
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another

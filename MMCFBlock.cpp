@@ -167,10 +167,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
    }
 
   for( Index k = 0 ; k < get_NComm() ; k++ ) {
-   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-    coeffs[ j ][ k ] = std::make_pair( v_mcf[ k ]->i2p_x(j) , double( 1 ) );
-    }
-
+   for( Index j = 0 ; j < get_NArcs() ; ++j )
+    coeffs[ j ][ k ] = std::make_pair( static_cast< MCFBlock * >(v_Block[k])->i2p_x(j) , double( 1 ) );
    }
 
   // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
@@ -178,10 +176,11 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
 
   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
    MCs[ j ].set_rhs( UTot[ j ] );
+   MCs[ j ].set_lhs( -Inf<FNumber>() );
    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
    }
 
-  add_static_constraint( MCs );
+  add_static_constraint( MCs , "Mut" );
 
   AR |= HasMutual;
   }
@@ -193,7 +192,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
 MMCFBlock::~MMCFBlock() {
 
  for( Index k = 0 ; k< NComm ; k++ )
-  delete v_mcf[ k ];
+  delete v_Block[ k ];
 
  } // end destructor   - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1078,15 +1077,15 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
- v_mcf.resize(NComm);
+ v_Block.resize(NComm);
  for( Index k = 0 ; k< NComm ; k++ ) {
   if( PT[ k ] != kMCF )
    throw( std::logic_error( "MCF is implemented only " ) );
 
   Block *sMCFblock = Block::new_Block( "MCFBlock" );
-  v_mcf[ k ] = static_cast<MCFBlock *>( sMCFblock );
+  v_Block[ k ] = static_cast<MCFBlock *>( sMCFblock );
 
-  v_mcf[ k ]->load( NNodes , NArcs , Startn , Endn ,
+  static_cast< MCFBlock * >(v_Block[ k ])->load( NNodes , NArcs , Startn , Endn ,
 		   U[ k ] , C[ k ] , B[ k ] );
 
   }
