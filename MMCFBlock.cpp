@@ -167,10 +167,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
    }
 
   for( Index k = 0 ; k < get_NComm() ; k++ ) {
-   auto v_s_Variable = v_mcf[ k ]->get_static_variables();
    for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-	ColVariable var = boost::any_cast<ColVariable>( v_s_Variable[j] );
-    coeffs[ j ][ k ] = std::make_pair( &var , double( 1 ) );
+    coeffs[ j ][ k ] = std::make_pair( v_mcf[ k ]->i2p_x(j) , double( 1 ) );
     }
 
    }
