@@ -191,8 +191,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
 
 MMCFBlock::~MMCFBlock() {
 
- for( Index k = 0 ; k< NComm ; k++ )
-  delete v_Block[ k ];
+ // for( Index k = 0 ; k< NComm ; k++ )
+ //  delete v_Block[ k ];
 
  } // end destructor   - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -210,9 +210,9 @@ void MMCFBlock::print( std::ostream &output ) const
 void MMCFBlock::load( std::istream &input )
 {
 
+ /*
  instance_type = read_char( input );
-
- /* instance_name = read_string( input );
+ instance_name = read_string( input );
 
  char * cstr;
  cstr = new char[ instance_name.size()+1 ];
@@ -511,7 +511,11 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
    inFile >> i;
    GOODN( i );
 
-   inFile >> B[ --k ][ --i ];
+   FNumber f;
+   inFile >> f;
+   B[ --k ][ --i ] = -f;
+
+   // inFile >> B[ --k ][ --i ];
    }
 
   break;
@@ -603,6 +607,7 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
  {            //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
   for( Index node ; inFile >> node ; ) {
+
    GOODN( node );
 
    int comm;
@@ -614,9 +619,9 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
 
    if( comm == -1 )
     for( Index k = 0 ; k < NComm ; )
-     B[ k++ ][ node - 1 ] = - flow;
+     B[ k++ ][ node - 1 ] = flow;
    else
-    B[ comm - 1 ][ node - 1 ] = - flow;
+    B[ comm - 1 ][ node - 1 ] = flow;
    }
 
   break;
@@ -648,17 +653,17 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
     comm--;
 
     if( origin < 0 )
-     B[ comm ][ dest - 1 ] = flow;
+     B[ comm ][ dest - 1 ] = -flow;
     else
-     B[ comm ][ origin - 1 ] = - flow;
+     B[ comm ][ origin - 1 ] = flow;
     }
    else
     if( origin < 0 )
      for( Index i = NumProd ; i-- ; )
-      B[ i ][ dest - 1 ] = flow;
+      B[ i ][ dest - 1 ] = -flow;
     else
      for( Index i = NumProd ; i-- ; )
-      B[ i ][ origin - 1 ] = - flow;
+      B[ i ][ origin - 1 ] = flow;
 
    }  // end( for( ! eof() ) )
 
