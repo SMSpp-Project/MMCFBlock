@@ -121,7 +121,13 @@ public:
 /** @name Other initializations
  *  @{ */
 
- virtual void MakeMMCF( const char *const filename , char filetype );
+ virtual void Load( const char *const filename , char filetype );
+
+ virtual void PreProcess( const FNumber IncUk = 0 ,  const FNumber DecUk = 0 ,
+		 const FNumber IncUjk = 0 , const FNumber DecUjk = 0 ,
+		 const FNumber ChgDfct = 0 , const CNumber DecCsts = 0 );
+
+ virtual void MakeMMCF( void );
 
 /*--------------------------------------------------------------------------*/
 

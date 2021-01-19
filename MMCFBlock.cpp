@@ -156,8 +156,6 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
 
  if( ! ( AR & HasMutual ) ) {
 
-  MCs.resize( get_NArcs() );
-
   // initialize the vectors of coefficients, and reset count[]
   std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
 
@@ -166,18 +164,32 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
    count[ j ] = 0;
    }
 
-  for( Index k = 0 ; k < get_NComm() ; k++ ) {
+  for( Index k = 0 ; k < get_NComm() ; k++ )
    for( Index j = 0 ; j < get_NArcs() ; ++j )
     coeffs[ j ][ k ] = std::make_pair( static_cast< MCFBlock * >(v_Block[k])->i2p_x(j) , double( 1 ) );
-   }
 
   // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
   // each constraint is an inequality, i.e., RHS = UTot[ j ]
 
-  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-   MCs[ j ].set_rhs( UTot[ j ] );
-   MCs[ j ].set_lhs( -Inf<FNumber>() );
-   MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+  if( Active.size() ) {
+   MCs.resize( NCnst );
+   for( Index j = 0 ; j < NCnst ; ++j ) {
+	if( UTot[ Active[j] ] >= Inf<double>() )
+	 throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+	MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ Active[j] ] ) , 0 ) );
+	MCs[ j ].set_rhs( UTot[ Active[j] ] );
+	MCs[ j ].set_lhs( -Inf<double>() );
+    }
+   }
+  else {
+   MCs.resize( get_NArcs() );
+   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+    if( UTot[ j ] >= Inf<double>() )
+	 throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+    MCs[ j ].set_rhs( UTot[ j ] );
+    MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    }
    }
 
   add_static_constraint( MCs , "Mut" );
@@ -218,13 +230,13 @@ void MMCFBlock::load( std::istream &input )
  cstr = new char[ instance_name.size()+1 ];
  strcpy (cstr, instance_name.c_str());    //here str.c_str() generate null terminated char* pointer
 
- MakeMMCF( cstr  , instance_type ); */
+ Load( cstr  , instance_type ); */
 
  }
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
+void MMCFBlock::Load( const char *const filename , char filetype )
 {
  // check parameters- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -539,8 +551,11 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
     }
 
   for( Index k = 0 ; k < NComm ; k++ )  // read all supplies
-   for( Index i = 0 ; i < NNodes ; )
-    inFile >> B[ k ][ i++ ];
+   for( Index i = 0 ; i < NNodes ; ) {
+	FNumber f;
+	inFile >> f;
+	B[ k ][ i++ ]=-f;
+    }
 
   for( Index i = 0 ; i < NArcs ; ) {      // read all total capacities
    FNumber f;
@@ -699,9 +714,9 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
      }
 
     if( dest == -1 )  // it is an origin
-     B[ i ][ origin - 1 ] = - flow;
+     B[ i ][ origin - 1 ] = flow;
     else
-     B[ i ][ dest - 1 ] = flow;
+     B[ i ][ dest - 1 ] = - flow;
     }
    else {  // comm == -1
     // origin or destination node for all the commodities ( k , origin )
@@ -720,9 +735,9 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
       }
 
      if( dest == -1 )  // it is an origin
-      B[ i ][ origin - 1 ] = - flow;
+      B[ i ][ origin - 1 ] = flow;
      else
-      B[ i ][ dest - 1 ] = flow;
+      B[ i ][ dest - 1 ] = - flow;
 
      }  // end for( k )
     }  // end else( comm == -1 )
@@ -754,16 +769,16 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
     Origins[ TempIdx[ comm ] ] = origin;
     Destins[ TempIdx[ comm ] ] = dest;
 
-    B[ TempIdx[ comm ] ][ dest - 1 ] = flow;
-    B[ TempIdx[ comm ]++ ][ origin - 1 ] = - flow;
+    B[ TempIdx[ comm ] ][ dest - 1 ] = -flow;
+    B[ TempIdx[ comm ]++ ][ origin - 1 ] = flow;
     }
    else
     for( Index i = NumProd ; i-- ; ) {
      Origins[ TempIdx[ i ] ] = origin;
      Destins[ TempIdx[ i ] ] = dest;
 
-     B[ TempIdx[ i ] ][ dest - 1 ] = flow;
-     B[ TempIdx[ i ]++ ][ origin - 1 ] = - flow;
+     B[ TempIdx[ i ] ][ dest - 1 ] = -flow;
+     B[ TempIdx[ i ]++ ][ origin - 1 ] = flow;
      }
     }  // end while( ! eof() )
    }   // end default()- - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -775,7 +790,8 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
  if( FourFiles ) {
   // continue only in the multi-file formats - - - - - - - - - - - - - - - - -
 
-  UTot.resize( NArcs , Inf<FNumber>() );
+  UTot.resize( NArcs );
+  UTot.assign( NArcs , Inf<FNumber>() );
 
   //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
   // now the though part: reading arc infos - - - - - - - - - - - - - - - - -
@@ -1058,6 +1074,7 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
     j = i++;
 
    UTot[ j ] = ( f >= 0 ? f : Inf<FNumber>() );
+
    }
 
   // temporary deallocation and final things- - - - - - - - - - - - - - - - -
@@ -1080,22 +1097,305 @@ void MMCFBlock::MakeMMCF( const char *const filename , char filetype )
 
  CmnIntlz();
 
+ }  // end( MMCFBlock::Load )
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::PreProcess( const FNumber IncUk , const FNumber DecUk ,
+	const FNumber IncUjk , const FNumber DecUjk , const FNumber ChgDfct ,
+    const CNumber DecCsts )
+{
+ if( ChgDfct >= Inf<double>() )
+  throw( std::invalid_argument( "infinite ChgDfct" ) );
+ if( DecCsts > Inf<double>() )
+  throw( std::invalid_argument( "infinite DecCsts" ) );
+
+ // allocate (temporary) data structures- - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ Active.resize(NArcs);
+
+ Vec_FNumber tmpv( NComm );
+ Subset srck( NComm );
+
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // squeeze rhss, declare arcs as "non-existent", etc.- - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ // ensure that all arcs entering/leaving a non-existent node do not exist- -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ for( Index k = 0 ; k < NComm ; k++ )
+  for( Index i = 0 ; i < NArcs ; i++ )
+   if( ( B[ k ][ Startn[ i ] - StrtNme ] == Inf<double>() ) ||
+       ( B[ k ][ Endn[ i ] - StrtNme ] == Inf<double>() ) )
+    C[ k ][ i ] = Inf<double>();
+
+ // ensure that all non-existent arcs have zero capacity- - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ for( Index k = 0 ; k < NComm ; k++ )
+  for( Index i = 0 ; i < NArcs ; i++ )
+   if( C[ k ][ i ] == Inf<double>() )
+    U[ k ][ i ] = 0;
+
+ // a *very* rough estimate of the max. flow across any arc is computed for
+ // each commodity, and it is stored in tmpv[ k ] - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ FNumber maxU = 0;
+ for( Index k = NComm ; k-- ; ) {
+  // first, count the flow out of the sources
+
+  Index srcs = 0;    // meanwhile, the sources are counted
+  FNumber maxUk = 0;
+  for( auto &Bk : B[k] )
+   if( Bk < 0 ) {
+	srcs++;
+	maxUk -= Bk;
+    }
+
+  // now the contribution of arcs with potentially negative costs
+
+  for( Index j = 0 ; j < NArcs ; j++ ) {
+   const FNumber tMF = min( U[ k ][j] , UTot[j] );
+
+   if( C[ k ][ j ] < DecCsts ) {
+    if( tMF >= Inf<double>() )
+     throw( std::invalid_argument( "negative cost, infinite capacity" ) );
+    maxUk += tMF;
+    }
+   }
+
+  srck[ k ] = srcs;
+  maxUk += ( ( NNodes + 1 ) / 2 ) * ChgDfct;  // count potential changes in
+                                              // the deficits
+  maxU += ( tmpv[ k ] = maxUk );
+
+  }
+
+ // detection of redundant mutual capacity constraints is attempted, and- - -
+ // all the mutual capacity upper bounds are turned to finite values- - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ for( Index i = NCnst = 0 ; i < NArcs ; i++ ) {
+  if( ( ! IncUk ) && ( ! UTot[ i ] ) ) {   // if mutual capacities can not
+   for( Index k = NComm ; k-- ; ) {        // increase, and UTot[] == 0 ...
+    C[ k ][ i ] = Inf<double>();           // ... this arc does not exist
+    U[ k ][ i ] = 0;
+    }
+
+   continue;
+   }
+
+  if( DecUk == Inf<double>() ) {     // all mutual capacity constraints exist
+   if( UTot[ i ] == Inf<double>() )  // but those that are declared non-so
+    UTot[ i ] = maxU;                 // ensure that UTot is "finite" anyway
+   else
+    Active[ NCnst++ ] = i;
+
+   continue;
+   }
+
+  // compute is an upper bound on the max quantity of flow (of any commodity)
+  // on arc i: if capacities can increase indefinitely, the only bound is
+  // the total quantity of flow in the graph
+
+  FNumber Ui = 0;
+  if( IncUjk < Inf<double>() )
+   for( Index k = NComm ; k-- ; )
+    if( U[ k ][ i ] == Inf<double>() )
+     Ui += tmpv[ k ];
+    else
+     Ui += min( tmpv[ k ] , U[ k ][ i ] + IncUjk );
+  else
+   Ui = maxU;
+
+  // note: when e.g. the mutual capacity and the sum of all the individual
+  // capacities of an arc are identical, the arc is marked as "inactive"; this
+  // is an arbitrary choice, since one could as well keep it and eliminate all
+  // the individual capacities
+
+  if( UTot[ i ] >= Ui - DecUk )
+   UTot[ i ] = Ui;
+  else
+   Active[ NCnst++ ] = i;
+
+  }  // end for( i )
+
+ if( NCnst < NArcs )
+  Active[ NCnst ] = Inf<Index>();
+
+ // now a squeeze of single-commodity capacities is attempted, and SPTs are -
+ // definitively recognized - - - - - - - - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // meanwhile, construct the "active" individual capacity constraints
+
+ for( Index k = 0 ; k < NComm ; k++ ) {
+
+  ActiveK[ k ].clear();
+  ActiveK[ k ].resize( NArcs );
+
+  Index cnt = 0;  // active individual capacity constraints
+
+  Index count1 = 0;
+  Index count2 = 0;
+  for( Index i = 0 ; i < NArcs ; i++ ) {
+   bool Ai = ( Active[count1] == i );    // true if arc i is "active"
+   if( Ai )
+    count1++;
+
+   if( C[ k ][ i ] == Inf<double>() )  // a non-existent arc
+    continue;
+
+   if( ( ! IncUjk ) && ( ! U[ k ][ i ] ) ) {
+    // an arc that can be declared non-existent by its capacity
+    // (that will never increase)
+    C[ k ][ i ] = Inf<double>();
+    continue;
+    }
+
+   if( DecUjk < Inf<double>() ) {
+    // if individual capacities cannot decrease forever, then the
+    // individual capacity constraint of some existing arc can be
+    // declared redundant
+
+    if( U[ k ][ i ] >= tmpv[ k ] + DecUjk ) {
+     // the constraint is redundant because there will never be that much
+     // flow in the graph
+
+     U[ k ][ i ] = min( tmpv[ k ] , UTot[ i ] );  // give it a "nice"
+     continue;                                    // finite value anyway
+     }
+
+    if( ( IncUk < Inf<double>() ) &&
+	( Ai && ( U[ k ][ i ] >= UTot[ i ] + IncUk + DecUjk ) ) ) {
+     // if mutual capacities cannot increase forever, some individual
+     // capacities may be declared redundant by the mutual capacity
+     // note that the mutual capacity of an arc can be used to declare
+     // that the individual capacity is redundant only if the arc is
+     // "active", as "inactive" arcs precisely mean that no mutual
+     // capacity constraint is imposed on them (i.e., the value of
+     // UTot[ i ] is not really meaningful and can be ignored)
+
+     U[ k ][ i ] = UTot[ i ];  // give it a "nice" finite value anyway
+     continue;
+     }
+    }
+
+   ActiveK[ k ][ count2++ ] = i;
+   cnt++;
+
+   }  // end for( i )
+
+  ///if( ( ! cnt ) && ( srck[ k ] == 1 ) )
+  /// PT[ k ] = kSPT;
+
+  NamesK[ k + 1 ] = NamesK[ k ] + cnt;
+
+  if( cnt >= NArcs )   // all individual capacity constraints are active
+   ActiveK[ k ].clear();
+  else { // some are active, some are not
+   ActiveK[ k ].resize(cnt + 1);
+   ActiveK[ k ][ cnt ] = Inf<Index>();
+   }
+  }   // end for( k )
+
+ if( NCnst >= NArcs )
+  Active.clear();
+
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // find and eliminate redundancies in the data structures- - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ // examine B[] - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ BIsCpy.resize( NComm , bool( false ) );
+
+ bool cpy = false;
+ for( Index k = 1 ; k < NComm ; k++ )
+  for( Index i = 0 ; i < k ; i++ )
+   if( ( ! BIsCpy[ i ] ) && ( B[ k ] == B[ i ] ) ) {
+    BIsCpy[ k ] = cpy = true;
+    B[ k ].resize( B[ i ].size() );
+    std::copy( B[ i ].begin() , B[ i ].end(), B[ k ].begin() );
+    break;
+    }
+
+ if( ! cpy )
+  BIsCpy.clear();
+
+ // examine U[] and UTot- - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ UIsCpy.resize( NComm , bool( false ) );
+
+ cpy = false;
+ if( U[ 0 ] == UTot ) {
+  UIsCpy[ 0 ] = cpy = true;
+  U[ 0 ].resize( UTot.size() );
+  std::copy( UTot.begin() , UTot.end(), U[ 0 ].begin() );
+  }
+
+ for( Index k = 1 ; k < NComm ; k++ )
+  for( Index i = 0 ; i < k ; i++ )
+   if( ( ! UIsCpy[ i ] ) && ( U[ k ] == U[ i ] ) ) {
+    UIsCpy[ k ] = cpy = true;
+    U[ k ].resize( U[ i ].size() );
+    std::copy( U[ i ].begin() , U[ i ].end(), U[ k ].begin() );
+    break;
+    }
+
+ if( ! cpy )
+  UIsCpy.clear();
+
+ // examine C[] - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ CIsCpy.resize( NComm , bool( false ) );
+
+ cpy = false;
+ for( Index k = 1 ; k < NComm ; k++ )
+  for( Index i = 0 ; i < k ; i++ )
+   if( ( ! CIsCpy[ i ] ) && ( C[ k ] == C[ i ] ) ) {
+    CIsCpy[ k ] = cpy = true;
+    C[ k ].resize( C[ i ].size() );
+    std::copy( C[ i ].begin() , C[ i ].end(), C[ k ].begin() );
+    break;
+    }
+
+ if( ! cpy )
+  CIsCpy.clear();
+
+ // cleanup - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ srck.clear();
+ tmpv.clear();
+
+ }  // end( MMCFBlock::PreProcess )
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::MakeMMCF( void ) {
+
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
  v_Block.resize(NComm);
  for( Index k = 0 ; k< NComm ; k++ ) {
   if( PT[ k ] != kMCF )
-   throw( std::logic_error( "MCF is implemented only " ) );
+   throw( std::logic_error( "MCF has be declared" ) );
 
   Block *sMCFblock = Block::new_Block( "MCFBlock" );
   v_Block[ k ] = static_cast<MCFBlock *>( sMCFblock );
 
   static_cast< MCFBlock * >(v_Block[ k ])->load( NNodes , NArcs , Startn , Endn ,
-		   U[ k ] , C[ k ] , B[ k ] );
+  U[ k ] , C[ k ] , B[ k ] );
 
   }
 
- }  // end( Graph( char* , char ) )
+ } // end( MMCFBlock::MakeMMCF )
 
 /*--------------------------------------------------------------------------*/
 
