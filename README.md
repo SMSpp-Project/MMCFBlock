@@ -1,17 +1,39 @@
 # mmcfblock
 
-MMCF (multicommodity min cost flow) problem using MILP Solver, The class reads in input an instances according to different formats. Then, the problem is constructed. 
+(So far, only a rough sketch of) a Block for Multicommodity Min-Cost Flow
+problems (MMCF).
 
-To compile is required to have at same folder level SMS++ and MCFblock The tester is given in the "tests" project. 
+The rationale for the class is that MMCF can be read in a variety of
+formats and can be represented in a number of different ways. The
+MMCFBlock so far basically only provides a convenient way to read an
+instance out of the many formats, such as some of those available from
 
-The mmcfblock tester contains:
+http://groups.di.unipi.it/optimize/Data/MMCF.html
 
-1. the main file: main.ccp;
-2. the generator of the instaces. To generate the istamces run the script file "genbatch"; 
-3. the instances (folder called data). That foledr is empty at beginning and it will be filled as you run "genbatch'. Thress kinds of instacmes are consedered: the Canad, the Mnetgen and the JLF. ;
-4. the batch files (folder called batch). To launch the tests run the scipt file called "auto";
-5. the makefile.
+and construct some formulations, i.e.:
 
-To compile the test file run the command make, but before is required to have installed at the same level of the tests foleder project and MILPSolver. Af for MMCFClass., The test project comes out along with MMCFClass. in fact, the test makes a comparison between MMCFCplex (under the interface MMCFClass) and the MILPSolver (written for SMS++).
+- the standard flow formulation in which k MCFBlock sub-Block are
+  constructed, one for each commodity, and the linking constraints
+  are handled in the father MMCFBlock;
+
+- [other ones to follow].
+
+MMCFBlock is still in very early development. 
 
 
+## Authors
+
+- **Antonio Frangioni**  
+  *Operations Research Group*  
+  Dipartimento di Informatica  
+  Università di Pisa
+
+- **Enrico Gorgone**  
+  Dipartimento di Matematica ed Informatica  
+  Università di Cagliari
+
+## License
+
+This code is provided free of charge under the [GNU Lesser General Public
+License version 3.0](https://opensource.org/licenses/lgpl-3.0.html) -
+see the [LICENSE](LICENSE) file for details.

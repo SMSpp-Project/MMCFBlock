@@ -70,73 +70,6 @@ using namespace SMSpp_di_unipi_it;
 /*----------------------------- FUNCTIONS ----------------------------------*/
 /*--------------------------------------------------------------------------*/
 
-template< typename T>
-static void read_T( istream & iStrm , T & t )
-{
- iStrm >> eatcomments;
-
- int c = iStrm.peek();
-
- switch( c ) {
-  case 'I' :
-  case 'i' : t = Inf<T>();
-             break;
-  case '-' : iStrm.get();
-             read_T( iStrm , t );
-             t = - t;
-             return;
-  case 'M' :
-  case 'm' : t = -Inf<T>();
-             break;
-  default :  iStrm >> t;
-             return;
-  }
-
- do { c = iStrm.get(); c = iStrm.peek();
-  } while( ( c != iStrm.widen( ' ' ) ) &&
-	   ( c != iStrm.widen( '\n' ) ) &&
-	   ( c != iStrm.widen( '\t' ) ) );
-
- }
-
-/*--------------------------------------------------------------------------*/
-
-static inline int read_int( istream & iStrm )
-{
- int d;
- read_T( iStrm , d );
- return( d );
- }
-
-/*--------------------------------------------------------------------------*/
-
-static inline double read_dbl( istream & iStrm )
-{
- double d;
- read_T( iStrm , d );
- return( d );
- }
-
-/*--------------------------------------------------------------------------*/
-
-static inline string read_string( istream & iStrm )
-{
- iStrm >> eatcomments;
- string s;
- int c = iStrm.peek();
- iStrm >> s;
- return( s );
- }
-
-/*--------------------------------------------------------------------------*/
-
-static inline char read_char( istream & iStrm )
-{
- char d;
- read_T( iStrm , d );
- return( d );
- }
-
 /*--------------------------------------------------------------------------*/
 /*----------------------------- STATIC MEMBERS -----------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -146,58 +79,96 @@ SMSpp_insert_in_factory_cpp_1( MMCFBlock );
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------- OTHER INITIALIZATIONS -------------------------*/
+/*--------------------------------------------------------------------------*/
 
-void MMCFBlock::generate_abstract_constraints( Configuration * stcc ) {
+void MMCFBlock::generate_abstract_variables( Configuration * stvv )
+{
+ if( AR & HasVar ) {
+  // TODO: check if stvv agrees with the formulation we currently have
+  //       and thorw exception otherwise
+  return;
+  }
+ 
+ // TODO: check stvv and construct other formulations accordingly
+
+ // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
+
+ v_Block.resize( NComm );
+ for( Index k = 0 ; k < NComm ; ++k ) {
+  /*!!
+  if( PT[ k ] == kSPT )
+   do something more clever
+   !!*/
+
+  auto MCFb = new MCFBlock( this );
+  MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
+  v_Block[ k ] = MCFb;
+  }
+
+ // call the base class method to have it done in the sub-Block, if any
+ Block::generate_abstract_variables();
+
+ AR |= HasVar;
+ }
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
+{
+ if( AR & HasMutual )
+  return;
+
+ // do it in the MCF
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
  // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
  Subset count( get_NArcs() );
 
- if( ! ( AR & HasMutual ) ) {
+ // initialize the vectors of coefficients, and reset count[]
+ std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
 
-  // initialize the vectors of coefficients, and reset count[]
-  std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
-
-  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-   coeffs[ j ].resize( NComm );
-   count[ j ] = 0;
-   }
-
-  for( Index k = 0 ; k < get_NComm() ; k++ )
-   for( Index j = 0 ; j < get_NArcs() ; ++j )
-    coeffs[ j ][ k ] = std::make_pair( static_cast< MCFBlock * >(v_Block[k])->i2p_x(j) , double( 1 ) );
-
-  // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
-  // each constraint is an inequality, i.e., RHS = UTot[ j ]
-
-  if( Active.size() ) {
-   MCs.resize( NCnst );
-   for( Index j = 0 ; j < NCnst ; ++j ) {
-	if( UTot[ Active[j] ] >= Inf<double>() )
-	 throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-	MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ Active[j] ] ) , 0 ) );
-	MCs[ j ].set_rhs( UTot[ Active[j] ] );
-	MCs[ j ].set_lhs( -Inf<double>() );
-    }
-   }
-  else {
-   MCs.resize( get_NArcs() );
-   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-    if( UTot[ j ] >= Inf<double>() )
-	 throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-    MCs[ j ].set_rhs( UTot[ j ] );
-    MCs[ j ].set_lhs( -Inf<double>() );
-    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
-    }
-   }
-
-  add_static_constraint( MCs , "Mut" );
-
-  AR |= HasMutual;
+ for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+  coeffs[ j ].resize( NComm );
+  count[ j ] = 0;
   }
 
- } // end( MMCFBlock::generate_abstract_constraints() )  - - - - - - - - - - -
+ for( Index k = 0 ; k < get_NComm() ; k++ )
+  for( Index j = 0 ; j < get_NArcs() ; ++j )
+    coeffs[ j ][ k ] = std::make_pair(
+      static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+
+ // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
+ // each constraint is an inequality, i.e., RHS = UTot[ j ]
+
+ if( Active.size() ) {
+  MCs.resize( NCnst );
+  for( Index j = 0 ; j < NCnst ; ++j ) {
+   if( UTot[ Active[ j ] ] >= Inf<double>() )
+    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+
+   MCs[ j ].set_function( new LinearFunction(
+				 std::move( coeffs[ Active[ j ] ] ) , 0 ) );
+   MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
+   MCs[ j ].set_lhs( -Inf<double>() );
+   }
+  }
+ else {
+  MCs.resize( get_NArcs() );
+  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+   if( UTot[ j ] >= Inf<double>() )
+    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+   MCs[ j ].set_rhs( UTot[ j ] );
+   MCs[ j ].set_lhs( -Inf<double>() );
+   MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+   }
+  }
+
+ add_static_constraint( MCs , "Mut" );
+
+ AR |= HasMutual;
+
+ }  // end( MMCFBlock::generate_abstract_constraints() )
 
 /*--------------------------------------------------------------------------*/
 
@@ -219,55 +190,39 @@ void MMCFBlock::print( std::ostream &output ) const
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFBlock::load( std::istream &input )
-{
-
- /*
- instance_type = read_char( input );
- instance_name = read_string( input );
-
- char * cstr;
- cstr = new char[ instance_name.size()+1 ];
- strcpy (cstr, instance_name.c_str());    //here str.c_str() generate null terminated char* pointer
-
- Load( cstr  , instance_type ); */
-
- }
-
-/*--------------------------------------------------------------------------*/
-
-void MMCFBlock::Load( const char *const filename , char filetype )
+void MMCFBlock::load( const char *const filename , char filetype )
 {
  // check parameters- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
- if( ( filetype != 'm' ) && ( filetype != 'p' ) && ( filetype != 'd' )
-	 && ( filetype != 'o' ) && ( filetype != 'u' ) && ( filetype != 's' )
-	 && ( filetype != 'c' ) )
-  throw( std::invalid_argument( "invalid file type" ) );
+ if( ( filetype != 'm' ) && ( filetype != 'p' ) && ( filetype != 'd' ) &&
+     ( filetype != 'o' ) && ( filetype != 'u' ) && ( filetype != 's' ) &&
+     ( filetype != 'c' ) )
+  throw( std::invalid_argument( "invalid file type" +
+				std::string( 1 , filetype ) ) );
 
  bool FourFiles = ( ( filetype != 's' ) && ( filetype != 'c' ) );
 
  // in principle there is no "extra" stuff- - - - - - - - - - - - - - - - - -
 
  NXtrV = NXtrC = 0;
- IdxBeg.resize(0);
- CoefIdx.resize(0);
- CoefVal.resize(0);
+ IdxBeg.resize( 0 );
+ CoefIdx.resize( 0 );
+ CoefVal.resize( 0 );
 
  // reading general informations- - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
  c_Index l = strlen( filename );
  char *Name = new char[ l + 5 ];  // temporary string containing the constant
- strcpy( Name , filename );             // part of the pathname + space for `.XXX'
+ strcpy( Name , filename );       // part of the pathname + space for `.XXX'
 
  if( FourFiles )
   strcpy( Name + l , ".nod" );
 
  ifstream inFile( Name );
  if( ! inFile.is_open() )
-  throw( std::invalid_argument( "can't open file" ) );
+  throw( std::invalid_argument( "can't open file" + std::string( Name ) ) );
 
  if( FourFiles ) {
   inFile >> NComm;
@@ -319,13 +274,14 @@ void MMCFBlock::Load( const char *const filename , char filetype )
  // format-dependent part - - - - - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
- if( FourFiles )  // preparing to read the supply file
+ if( FourFiles ) {  // preparing to read the supply file
   if( filetype == 'u' ) {
    strcpy( Name + l , ".od" );
    filetype = 'd';
    }
   else
    strcpy( Name + l , ".sup" );
+  }
 
  // determining the actual number of commodities for (OSP) or (ODS)- - - - - -
  // formulations: in the first case, a commodity is a pair ( product , - - - -
@@ -338,7 +294,7 @@ void MMCFBlock::Load( const char *const filename , char filetype )
   inFile.clear();        // ensure failbits are not left dirty
   inFile.open( Name );   // commodities can be told from supplies
   if( ! inFile.is_open() )
-   throw( std::invalid_argument( "can't open file" ) );
+   throw( std::invalid_argument( "can't open file" + std::string( Name ) ) );
 
   int origin;   // the *.sup file is read once here just to count the number
   int dest;     // of commodities: the actual data reading will be done later
@@ -467,7 +423,7 @@ void MMCFBlock::Load( const char *const filename , char filetype )
   inFile.clear();        // ensure failbits are not left dirty
   inFile.open( Name );  // the right name is already there
   if( ! inFile.is_open() )
-   throw( std::invalid_argument( "can't open file" ) );
+   throw( std::invalid_argument( "can't open file" + std::string( Name )  ) );
   }
 
  switch( filetype ) {
@@ -802,7 +758,7 @@ void MMCFBlock::Load( const char *const filename , char filetype )
   inFile.clear();        // ensure failbits are not left dirty
   inFile.open( Name );
   if( ! inFile.is_open() )
-   throw( std::invalid_argument( "can't open file" ) );
+   throw( std::invalid_argument( "can't open file" + std::string( Name )  ) );
 
   if( filetype == 'm' )   // mnetgen format - - - - - - - - - - - - - - - - - - - -
   {                 // it is dealt with separatedly, since it's simpler: the
@@ -1059,7 +1015,7 @@ void MMCFBlock::Load( const char *const filename , char filetype )
   inFile.clear();        // ensure failbits are not left dirty
   inFile.open( Name );
   if( ! inFile.is_open() )
-   throw( std::invalid_argument( "can't open file" ) );
+   throw( std::invalid_argument( "can't open file" + std::string( Name ) ) );
 
   for( Index i = 0 ; i < NCnst ; ) {
    Index j;
@@ -1101,9 +1057,9 @@ void MMCFBlock::Load( const char *const filename , char filetype )
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFBlock::PreProcess( const FNumber IncUk , const FNumber DecUk ,
-	const FNumber IncUjk , const FNumber DecUjk , const FNumber ChgDfct ,
-    const CNumber DecCsts )
+void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
+			    FNumber IncUjk , FNumber DecUjk ,
+			    FNumber ChgDfct , CNumber DecCsts )
 {
  if( ChgDfct >= Inf<double>() )
   throw( std::invalid_argument( "infinite ChgDfct" ) );
@@ -1113,7 +1069,7 @@ void MMCFBlock::PreProcess( const FNumber IncUk , const FNumber DecUk ,
  // allocate (temporary) data structures- - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
- Active.resize(NArcs);
+ Active.resize( NArcs );
 
  Vec_FNumber tmpv( NComm );
  Subset srck( NComm );
@@ -1375,27 +1331,6 @@ void MMCFBlock::PreProcess( const FNumber IncUk , const FNumber DecUk ,
  tmpv.clear();
 
  }  // end( MMCFBlock::PreProcess )
-
-/*--------------------------------------------------------------------------*/
-
-void MMCFBlock::MakeMMCF( void ) {
-
- // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
-
- v_Block.resize(NComm);
- for( Index k = 0 ; k< NComm ; k++ ) {
-  if( PT[ k ] != kMCF )
-   throw( std::logic_error( "MCF has be declared" ) );
-
-  Block *sMCFblock = Block::new_Block( "MCFBlock" );
-  v_Block[ k ] = static_cast<MCFBlock *>( sMCFblock );
-
-  static_cast< MCFBlock * >(v_Block[ k ])->load( NNodes , NArcs , Startn , Endn ,
-  U[ k ] , C[ k ] , B[ k ] );
-
-  }
-
- } // end( MMCFBlock::MakeMMCF )
 
 /*--------------------------------------------------------------------------*/
 
