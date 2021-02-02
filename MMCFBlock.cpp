@@ -279,8 +279,9 @@ void MMCFBlock::load( const char *const filename , char filetype )
    strcpy( Name + l , ".od" );
    filetype = 'd';
    }
-  else
-   strcpy( Name + l , ".sup" );
+  else {
+   strcpy( Name + l, ".sup" );
+  }
   }
 
  // determining the actual number of commodities for (OSP) or (ODS)- - - - - -
