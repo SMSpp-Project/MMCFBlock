@@ -56,6 +56,11 @@ find_package(MMCFBlock)
 target_link_libraries(<my_target> SMS++::MMCFBlock)
 ```
 
+## Getting help
+
+If you need support, you want to submit bugs or propose a new feature, you can
+[open a new issue](https://gitlab.com/smspp/mmcfblock/-/issues/new).
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of
