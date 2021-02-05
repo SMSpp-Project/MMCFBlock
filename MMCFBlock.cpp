@@ -88,7 +88,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   //       and thorw exception otherwise
   return;
   }
- 
+
  // TODO: check stvv and construct other formulations accordingly
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
