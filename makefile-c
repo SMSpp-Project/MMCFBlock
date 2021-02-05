@@ -7,16 +7,16 @@
 #   The makefile defines internally all external libraries (comprised the    #
 #   SMS++ one) required by SimpleMILPBlock. Accordingly, all necessary OBJ,  #
 #   H, -I directives, external libraries + -L<libdirs> are added to the      #
-#   corresponding MMCF* macros.                                             #
+#   corresponding MMCF* macros.                                              #
 #                                                                            #
 #   Input:  $(CC)       = compiler command                                   #
 #           $(SW)       = compiler options                                   #
-#           $(MMCFSDR) = the directory where MMCFBlock source is           #
+#           $(MMCFSDR) = the directory where MMCFBlock source is             #
 #                                                                            #
-#   Output: $(MMCFOBJ) = the final object(s) / library                      #
-#           $(MMCFLIB) = external libraries + -L<libdirs>                   #
-#           $(MMCFH)   = the .h files to include for MMCFBlock        #
-#           $(MMCFINC) = the -I$( MMCFBlock directory )               #
+#   Output: $(MMCFOBJ) = the final object(s) / library                       #
+#           $(MMCFLIB) = external libraries + -L<libdirs>                    #
+#           $(MMCFH)   = the .h files to include for MMCFBlock               #
+#           $(MMCFINC) = the -I$( MMCFBlock directory )                      #
 #                                                                            #
 #                                VERSION 1.00                                #
 #                               20 - 07 - 2018                               #
@@ -37,11 +37,12 @@
 # *INC is the -I<include directories>
 
 # define input macros for SMS++ complete makefile, then include it
-SMS++SDR = $(MMCFSDR)../SMS++/
-include $(SMS++SDR)lib/makefile-c
+# no need, MCFBlock does that already
+#SMS++SDR = $(MMCFSDR)../SMS++/
+#include $(SMS++SDR)lib/makefile-c
 
-# define input macros for MCFblock complete makefile, then include it
-MCFBkSDR = $(MMCFSDR)../mcfblock/
+# define input macros for MCFBlock complete makefile, then include it
+MCFBkSDR = $(MMCFSDR)../MCFBlock/
 include $(MCFBkSDR)makefile-c
 
 # include the makefile requiring all external modules in input

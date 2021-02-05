@@ -1,5 +1,5 @@
 /*--------------------------------------------------------------------------*/
-/*--------------------------- File MMCFBlock.h ----------------------------*/
+/*---------------------------- File MMCFBlock.h ----------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @file
  * Header file for the *concrete* class MMCFBlock, which implements the
@@ -26,8 +26,7 @@
 /*--------------------------------------------------------------------------*/
 
 #ifndef __MMCFBlock
- #define __MMCFBlock
-                      /* self-identification: #endif at the end of the file */
+ #define __MMCFBlock  /* self-identification: #endif at the end of the file */
 
 /*--------------------------------------------------------------------------*/
 /*------------------------------ INCLUDES ----------------------------------*/
@@ -48,7 +47,7 @@
 namespace SMSpp_di_unipi_it
 {
 /*--------------------------------------------------------------------------*/
-/*-------------------- SimpleMILPBlock-RELATED TYPES -----------------------*/
+/*----------------------- MMCFBlock-RELATED TYPES --------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @name Public Types
  *
@@ -71,7 +70,7 @@ namespace SMSpp_di_unipi_it
 /*--------------------------------------------------------------------------*/
 /*------------------------------- CLASSES ----------------------------------*/
 /*--------------------------------------------------------------------------*/
-/** @defgroup SimpleMILPBlock_CLASSES Classes in SimpleMILPBlock.h
+/** @defgroup MMCFBlock_CLASSES Classes in MMCFBlock.h
  *  @{ */
 
 /*--------------------------------------------------------------------------*/
@@ -81,8 +80,8 @@ namespace SMSpp_di_unipi_it
 /*--------------------------------------------------------------------------*/
 /// Implementation of a simple MMCF Block concept.
 
-class MMCFBlock : public Block {
-
+class MMCFBlock : public Block
+{
 /*--------------------------------------------------------------------------*/
 /*----------------------- PUBLIC PART OF THE CLASS -------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -121,11 +120,85 @@ public:
 /** @name Other initializations
  *  @{ */
 
- virtual void MakeMMCF( const char *const filename , char filetype );
+ /// loads the instance from the given file of the given type
+
+ void load( const char *const filename , char filetype );
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// simplifies the problem
+ /** Performs various pre-processing of the data, trying to make the instance
+  * more easily solvable. The parameters to be given are the following:
+  *
+  * IncUk , DecUk   => (>= 0) upper bounds on the increase and decrease of the
+  *                    mutual capacities: may be Inf<FNumber>() if unknown;
+  *
+  * IncUjk , DecUjk => (>= 0) same as above for single-commodity capacities;
+  *
+  * ChgDfct         => (>= 0) upper bound on the maximum change, in absolute
+  *                    value, of the node deficits: it must be a finite number,
+  *                    since it is used to generate "loose" but finite
+  *                    individual capacities for arcs that have none;
+  *
+  *   DecCsts         => (>= 0) upper bound on the decrease of arc Costs: must
+  *                      be < Inf<CNumber>().
+  *
+  * Giving tight bounds (0 is the best, obviously) may cause the preprocessor
+  * to find more redundant coupling constraints, to squeeze down individual
+  * arc capacities, to remove more unused arcs and in general to do a better
+  * preprocessing; for instance, IncUjk == 0 allows PreProcess() to declare
+  * un-existent (set the cost to Inf<CNumber>()) any arc with 0 individual
+  * capacity.
+  *
+  * For all k such that, after the pre-processing, the graph has only a source
+  * and no (existing) arcs have a "real" capacity, the type of the subproblem
+  * is set to kSPT: all other problem types are left unchanged.
+  *
+  * Important note: in order for PreProcess() to work, it has to be able to
+  * guess at least an upper bound on the maximum quantity of each commodity
+  * in the graph. In order to do that, *all arcs* with potentially *negative
+  * costs* (ChgCsts is used to estimate that) must have a *finite capacity*.
+  *
+  * PreProcess() will also look for redundancy in the data structures (e.g.
+  * identical costs/deficits/individual capacities for some commodities) and
+  * eliminate them, thus possibly saving some memory.
+  *
+  * It can be called *only once*. The ideal would be that it is automatically
+  * called after load(), deserialize() ecc. but this would not allow to set
+  * the proper parameters, therefore it has to be done independently (if
+  * ever). */
+
+ void PreProcess( FNumber IncUk = 0 , FNumber DecUk = 0 ,
+		  FNumber IncUjk = 0 , FNumber DecUjk = 0 ,
+		  FNumber ChgDfct = 0 , CNumber DecCsts = 0 );
+
+/*--------------------------------------------------------------------------*/
+ /// generate the "abstract representation" of the Variable of the Block
+ /** This method generates the "abstract representation" of the Variable of
+  * the MMCFBlock, and in fact it decides which formulation of the MMCF
+  * problem is implemented. This is controlled by the parameter stvv. If stvv
+  * is not nullptr and it is a SimpleConfiguration< int >, or if
+  * f_BlockConfig->f_static_variables_Configuration is not nullptr and it is a
+  * SimpleConfiguration< int >, then the f_value (an int) dictates which
+  * MMCF formulation as follows:
+  *
+  * - [currently all values]: the standard flow formulation in which k
+  *   MCFBlock sub-Block are constructed, one for each commodity, and the
+  *   linking constraints are handled in the father MMCFBlock;
+  *
+  * - [other ones to follow].
+  */
+
+ void generate_abstract_variables( Configuration * stvv = nullptr ) override;
 
 /*--------------------------------------------------------------------------*/
 
- virtual void generate_abstract_constraints( Configuration * stcc = nullptr );
+ void generate_abstract_constraints( Configuration * stcc = nullptr )
+  override;
+
+/*--------------------------------------------------------------------------*/
+ /*!! not needed yet, the version of Block suffices so far
+ void generate_objective( Configuration * objc = nullptr ) override;
+ !!*/
 
 /**@} ----------------------------------------------------------------------*/
 /*-------------- Methods for reading the data of the MCFBlock --------------*/
@@ -133,26 +206,26 @@ public:
 /** @name Methods for reading the data of the MMCFBlock
   *  @{ */
 
- inline char get_filetype( void ) const{ return( instance_type ); }
+ char get_filetype( void ) const { return( instance_type ); }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
- inline std::string get_filename( void ) const{ return( instance_name ); }
+ std::string get_filename( void ) const { return( instance_name ); }
 
 /*--------------------------------------------------------------------------*/
-  /// get the number of nodes
+ /// get the number of nodes
 
-  inline Index get_NNodes( void ) const { return( NNodes ); }
-
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-  /// get the number of arcs
-
-  inline Index get_NArcs( void ) const { return( NArcs ); }
+ Index get_NNodes( void ) const { return( NNodes ); }
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-  /// get the number of commodities
+ /// get the number of arcs
 
-  inline Index get_NComm( void ) const { return( NComm ); }
+ Index get_NArcs( void ) const { return( NArcs ); }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// get the number of commodities
+
+ Index get_NComm( void ) const { return( NComm ); }
 
 /*@}------------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
@@ -166,26 +239,29 @@ public:
 /** @name Protected methods for inserting and extracting
     @{ */
 
+ /// print the MMCFBlock on an ostream with the given verbosity
+
  virtual void print( std::ostream &output ) const override;
- ///< print the MMCFBlock on an ostream with the given verbosity
 
 /*--------------------------------------------------------------------------*/
- void load( std::istream &input ) override;
  ///< load the MMCFBlock out of an istream
- /**< Load the MMCFBlock out of an istream. The format is:
+ /**< Load the MMCFBlock out of an istream. The format is: ...
   *
   */
 
+ void load( std::istream &input ) override { // TODO: implement
+  }
+
 /*--------------------------------------------------------------------------*/
 
- virtual void serialize( netCDF::NcGroup & file ) const override;
+ void serialize( netCDF::NcGroup & file ) const override;
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
  /// extends Block::deserialize( netCDF::NcGroup )
  /** Extends Block::deserialize( netCDF::NcGroup ) to the specific format of
   * a MMCFBlock.  */
 
- virtual void deserialize( netCDF::NcGroup & group );
+ void deserialize( netCDF::NcGroup & group );
 
 /*--------------------------------------------------------------------------*/
  /** called at the end of any constructor, does some initializations that are
@@ -200,8 +276,11 @@ public:
 
  unsigned char AR;   ///< bit-wise coded: what abstract is there
 
- static constexpr unsigned char HasMutual = 1;
- ///< first bit of AR == 1 if the Mutual Constraints has been constructed
+ static constexpr unsigned char HasVar = 1;
+ ///< first bit of AR == 1 if the formulation has been chosen already
+
+ static constexpr unsigned char HasMutual = 2;
+ ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
  Index NXtrV;         ///< Number of "extra" variables
  Index NXtrC;         ///< Number of "extra" constraints
@@ -235,7 +314,7 @@ public:
  MultiSubset ActiveK; ///< Like Active for individual capacities
  bool DrctdPrb;       ///< true if the problem is directed
  std::vector<MCFType> PT;  ///< type of flow subproblem
- std::vector< MCFBlock * > v_mcf;
+ // std::vector< MCFBlock * > v_mcf;
    ///< the vector of (pointers to) the components of the sum function
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another
