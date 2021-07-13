@@ -34,7 +34,7 @@
 
 #include "Block.h"
 #include "MCFBlock.h"
-
+#include "BinaryKnapsackBlock.h"
 #include "ColVariable.h"
 #include "FRowConstraint.h"
 #include "Configuration.h"
@@ -297,6 +297,7 @@ public:
  CMultiVector C;      ///< Matrix of the arc costs
  FMultiVector U;      ///< Matrix of the arc upper capacities
  FMultiVector B;      ///< Matrix of the node deficits
+ FMultiVector I;      ///< Matrix of the integrality constraints for the variables
 
  Vec_FNumber UTot;    ///< Vector of mutual capacities
 
@@ -321,6 +322,8 @@ public:
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
+ 
+ bool FlowRelaxation; ///< true if we use the flow relaxation and false if we use the knapsack relaxation
 
  std::vector<FRowConstraint> MCs;  ///< the static mutual capacity constrs.
 

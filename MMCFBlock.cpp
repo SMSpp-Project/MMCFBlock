@@ -92,7 +92,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
  // TODO: check stvv and construct other formulations accordingly
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
-
+if(FlowRelaxation == true){
  v_Block.resize( NComm );
  for( Index k = 0 ; k < NComm ; ++k ) {
   /*!!
@@ -104,6 +104,36 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
   v_Block[ k ] = MCFb;
   }
+}
+else{
+ v_Block.resize( NArcs );
+ std::vector<bool> Integrality;
+ FMultiVector weights;
+ FMultiVector costs;
+ weights.resize( NComm + 1 );  // allocate weights for the knapsack sub-problem
+ costs.resize( NComm + 1 );  // allocate costs for the knapsack sub-problem
+ 
+ for(Index j=0;j<NArcs;j++){ 
+ weights[ j ].resize( NComm+1 );
+ costs[ j ].resize( NComm+1 );
+   for(Index k =0; k< NComm; k++){
+     weights[j][k]=1;
+     costs[j][k]=C[k][j];
+   }
+   weights[j][NComm]=-UTot[j];
+   costs[j][NComm]=-C[NComm][j];
+ }
+  
+
+   for( Index j = 0 ; j < NArcs ; ++j )  {
+   Integrality[j]=false;
+  Integrality[NComm]=true; 
+  
+  auto BKb = new BinaryKnapsackBlock( this );
+  BKb->load( NComm,0, weights[j], costs[j] , Integrality ); 
+  v_Block[ j ] = BKb;
+  }
+}
 
  // call the base class method to have it done in the sub-Block, if any
  Block::generate_abstract_variables();
@@ -122,50 +152,109 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
- // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
- Subset count( get_NArcs() );
+ if(FlowRelaxation==true){
+  // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
+  Subset count( get_NArcs() );
 
- // initialize the vectors of coefficients, and reset count[]
- std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
+  // initialize the vectors of coefficients, and reset count[]
+  std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
 
- for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-  coeffs[ j ].resize( NComm );
-  count[ j ] = 0;
-  }
+  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+   coeffs[ j ].resize( NComm );
+   count[ j ] = 0;
+   }
 
- for( Index k = 0 ; k < get_NComm() ; k++ )
-  for( Index j = 0 ; j < get_NArcs() ; ++j )
-    coeffs[ j ][ k ] = std::make_pair(
-      static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+  for( Index k = 0 ; k < get_NComm() ; k++ )
+   for( Index j = 0 ; j < get_NArcs() ; ++j )
+     coeffs[ j ][ k ] = std::make_pair(
+       static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
 
  // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
  // each constraint is an inequality, i.e., RHS = UTot[ j ]
 
- if( Active.size() ) {
-  MCs.resize( NCnst );
-  for( Index j = 0 ; j < NCnst ; ++j ) {
-   if( UTot[ Active[ j ] ] >= Inf<double>() )
-    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+  if( Active.size() ) {
+   MCs.resize( NCnst );
+   for( Index j = 0 ; j < NCnst ; ++j ) {
+    if( UTot[ Active[ j ] ] >= Inf<double>() )
+     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
 
-   MCs[ j ].set_function( new LinearFunction(
+    MCs[ j ].set_function( new LinearFunction(
 				 std::move( coeffs[ Active[ j ] ] ) , 0 ) );
-   MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
-   MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
+    MCs[ j ].set_lhs( -Inf<double>() );
+    }
    }
-  }
- else {
-  MCs.resize( get_NArcs() );
-  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-   if( UTot[ j ] >= Inf<double>() )
-    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-   MCs[ j ].set_rhs( UTot[ j ] );
-   MCs[ j ].set_lhs( -Inf<double>() );
-   MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+  else {
+   MCs.resize( get_NArcs() );
+   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+    if( UTot[ j ] >= Inf<double>() )
+     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+    MCs[ j ].set_rhs( UTot[ j ] );
+    MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    }
    }
-  }
 
- add_static_constraint( MCs , "Mut" );
+  add_static_constraint( MCs , "Mut" );
 
+ }else{
+  // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
+  Subset count( get_NArcs() );
+
+  // initialize the vectors of coefficients, and reset count[]
+  std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
+
+  for( Index k = 0 ; k < get_NComm() ; ++k ) {
+   coeffs[ k ].resize( NArcs );
+   count[ k ] = 0;
+   }
+
+  for( Index k = 0 ; k < get_NComm() ; k++ )
+   for( Index j = 0 ; j < get_NArcs() ; ++j )
+     coeffs[ j ][ k ] = std::make_pair(
+       static_cast< BinaryKnapsackBlock * >( v_Block[ j ] )->get_Var( k ) , double( 1 ) );
+
+  // generate the flow constraints  - - - - - - - - - - - - - - -
+  // each constraint is an equality, i.e., RHS = LHS = B[][ k ]
+
+ // if( Active.size() ) {
+ //  MCs.resize( NCnst );
+ //  for( Index k = 0 ; k < NCnst ; ++k ) {
+ //   if( B[][ Active[ k ] ] >= Inf<double>() )
+ //    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+
+ //   MCs[ k ].set_function( new LinearFunction(
+//				 std::move( coeffs[ Active[ k ] ] ) , 0 ) );
+ //   MCs[ k ].set_rhs( B[][ Active[ k ] ] );
+ //   MCs[ k ].set_lhs( B[][ Active[ k ] ] );
+ //   }
+ //  }
+ // else {
+ 
+ //forse serve  Vec_FNumber;
+   FMultiVector BConstr;
+   BConstr.resize(NComm);
+   
+   
+ 
+   MCs.resize( get_NComm() );
+   for( Index k = 0 ; k < get_NComm() ; ++k ) {
+    BConstr[k].resize(NNodes);
+    for(Index i=0; i< get_NNodes();i++){
+      BConstr[k][i]=B[i][k];
+    }
+//    if( BConstr[ k ] >= Inf<double>() )
+//     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+    for(Index i=0; i< get_NNodes();i++){
+      MCs[ k ].set_rhs( BConstr[ k ][ i ] );
+      MCs[ k ].set_lhs( BConstr[ k ][ i ]  );
+    }
+    MCs[ k ].set_function( new LinearFunction( std::move( coeffs[ k ] ) , 0 ) );
+    }
+ //  }
+
+  add_static_constraint( MCs , "Flow" );
+ }
  AR |= HasMutual;
 
  }  // end( MMCFBlock::generate_abstract_constraints() )
