@@ -44,7 +44,7 @@ MCFBkSDR = $(MMCFSDR)../MCFBlock/
 include $(MCFBkSDR)makefile-s
 
 # include the makefile requiring all external modules in input
-include $(MMCFSDR)/makefile
+include $(MMCFSDR)makefile
 
 # macroes to be exported- - - - - - - - - - - - - - - - - - - - - - - - - - -
 
