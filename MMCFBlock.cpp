@@ -40,8 +40,6 @@
 using namespace SMSpp_di_unipi_it;
 using namespace std;
 
-using namespace SMSpp_di_unipi_it;
-
 /*--------------------------------------------------------------------------*/
 /*-------------------------------- MACROS ----------------------------------*/
 /*--                                                                      --*/
@@ -92,8 +90,11 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
  // TODO: check stvv and construct other formulations accordingly
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
+
 if(FlowRelaxation == true){
+
  v_Block.resize( NComm );
+ 
  for( Index k = 0 ; k < NComm ; ++k ) {
   /*!!
   if( PT[ k ] == kSPT )
@@ -106,32 +107,15 @@ if(FlowRelaxation == true){
   }
 }
 else{
- v_Block.resize( NArcs );
- std::vector<bool> Integrality;
- FMultiVector weights;
- FMultiVector costs;
- weights.resize( NComm + 1 );  // allocate weights for the knapsack sub-problem
- costs.resize( NComm + 1 );  // allocate costs for the knapsack sub-problem
- 
- for(Index j=0;j<NArcs;j++){ 
- weights[ j ].resize( NComm+1 );
- costs[ j ].resize( NComm+1 );
-   for(Index k =0; k< NComm; k++){
-     weights[j][k]=1;
-     costs[j][k]=C[k][j];
-   }
-   weights[j][NComm]=-UTot[j];
-   costs[j][NComm]=-C[NComm][j];
- }
-  
 
-   for( Index j = 0 ; j < NArcs ; ++j )  {
-   Integrality[j]=false;
-  Integrality[NComm]=true; 
-  
+ v_Block.resize( NArcs );
+ 
+ for( int j = 0; j < NArcs; j++ ){
   auto BKb = new BinaryKnapsackBlock( this );
-  BKb->load( NComm,0, weights[j], costs[j] , Integrality ); 
+  
+  BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
   v_Block[ j ] = BKb;
+  
   }
 }
 
@@ -152,7 +136,9 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
+
  if(FlowRelaxation==true){
+ 
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   Subset count( get_NArcs() );
 
@@ -167,7 +153,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   for( Index k = 0 ; k < get_NComm() ; k++ )
    for( Index j = 0 ; j < get_NArcs() ; ++j )
      coeffs[ j ][ k ] = std::make_pair(
-       static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+       static_cast< BinaryKnapsackBlock * >( v_Block[ k ] )->get_Var( j ) , double( 1 ) );
 
  // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
  // each constraint is an inequality, i.e., RHS = UTot[ j ]
@@ -198,64 +184,55 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   add_static_constraint( MCs , "Mut" );
 
  }else{
+ 
+ 
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
-  Subset count( get_NArcs() );
-
+  std::vector< Subset > count( get_NComm() );
+ 
   // initialize the vectors of coefficients, and reset count[]
-  std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
-
-  for( Index k = 0 ; k < get_NComm() ; ++k ) {
-   coeffs[ k ].resize( NArcs );
-   count[ k ] = 0;
-   }
-
-  for( Index k = 0 ; k < get_NComm() ; k++ )
-   for( Index j = 0 ; j < get_NArcs() ; ++j )
-     coeffs[ j ][ k ] = std::make_pair(
-       static_cast< BinaryKnapsackBlock * >( v_Block[ j ] )->get_Var( k ) , double( 1 ) );
-
-  // generate the flow constraints  - - - - - - - - - - - - - - -
-  // each constraint is an equality, i.e., RHS = LHS = B[][ k ]
-
- // if( Active.size() ) {
- //  MCs.resize( NCnst );
- //  for( Index k = 0 ; k < NCnst ; ++k ) {
- //   if( B[][ Active[ k ] ] >= Inf<double>() )
- //    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-
- //   MCs[ k ].set_function( new LinearFunction(
-//				 std::move( coeffs[ Active[ k ] ] ) , 0 ) );
- //   MCs[ k ].set_rhs( B[][ Active[ k ] ] );
- //   MCs[ k ].set_lhs( B[][ Active[ k ] ] );
- //   }
- //  }
- // else {
- 
- //forse serve  Vec_FNumber;
-   FMultiVector BConstr;
-   BConstr.resize(NComm);
-   
-   
- 
-   MCs.resize( get_NComm() );
+  std::vector< LinearFunction::v_coeff_pair > coeffs;
+  coeffs.resize( get_NNodes()*get_NComm() );
+  
    for( Index k = 0 ; k < get_NComm() ; ++k ) {
-    BConstr[k].resize(NNodes);
-    for(Index i=0; i< get_NNodes();i++){
-      BConstr[k][i]=B[i][k];
-    }
-//    if( BConstr[ k ] >= Inf<double>() )
-//     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-    for(Index i=0; i< get_NNodes();i++){
-      MCs[ k ].set_rhs( BConstr[ k ][ i ] );
-      MCs[ k ].set_lhs( BConstr[ k ][ i ]  );
-    }
-    MCs[ k ].set_function( new LinearFunction( std::move( coeffs[ k ] ) , 0 ) );
-    }
- //  }
+   count[k].resize(get_NNodes());
+  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+   count[ k ][ Startn[ i ] - 1 ]++;
+   count[k][ Endn[ i ] - 1 ]++;
+   }
+   }
+  
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for( Index i = 0 ; i < get_NNodes() ; ++i ) {
+   coeffs[ k*(get_NNodes() -1)+i ].resize( count[k][i] );
+   count[k][i]=0;
+   }
+  }
 
-  add_static_constraint( MCs , "Flow" );
+  // construct the vector of coefficients, static phase
+
+
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for(  Index i = 0; i < get_NArcs() ; ++i ) {
+   coeffs[ k*(get_NNodes() - 1 ) + Startn[ i ] - 1 ][ count[k][Startn[ i ]-1]++ ] =  std::make_pair(  static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k )  ,  -1  ) ;
+   coeffs[ k*(get_NNodes() - 1 ) + Endn[ i ] - 1 ][ count[k][Endn[ i ]-1]++] =   std::make_pair(  static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k )  ,  1  ) ;
+   }
+ }
+   MCs.resize( get_NNodes()*get_NComm() );
+ 
+ for(  Index i = 0; i < get_NNodes() ; ++i ){ 
+   for( Index k = 0 ; k < get_NComm() ; ++k ) {  
+    MCs[ k*(get_NNodes() - 1 ) + i  ].set_both( B.empty() ? 0 : B[ k ][ i ] );
+   
+    MCs[  k*(get_NNodes() - 1 ) + i ].set_function( new LinearFunction( std::move( coeffs[  k*(get_NNodes() - 1) + i ] ) , 0 ) );
+   }
+ }
+
+   add_static_constraint( MCs, "Flow" );
+  
  }
  AR |= HasMutual;
+ 
+  cout<<"8\n";
 
  }  // end( MMCFBlock::generate_abstract_constraints() )
 
@@ -1140,8 +1117,49 @@ void MMCFBlock::load( const char *const filename , char filetype )
  delete[] Name;
 
  // common initializations- - - - - - - - - - - - - - - - - - - - - - - - - -
-
  CmnIntlz();
+ 
+ //construct vectors for the flow relaxation
+ 
+ 
+ weights.resize( NArcs + 1 );  // allocate weights for the knapsack sub-problem
+ costs.resize( NArcs + 1 );  // allocate costs for the knapsack sub-problem
+ 
+ 
+for( Index j = 0 ; j < NArcs ; j++ ){ 
+ weights[ j ].resize( NComm + 1 );
+ costs[ j ].resize( NComm + 1 );
+   for(Index k =0; k< NComm; k++){
+     weights[ j ][ k ]=1;
+     costs[ j ][ k ] = C[ k ][ j ];
+   }
+   
+   weights[ j ][ NComm ] = - UTot[ j ];
+   if( filetype == 's' )
+     costs[ j ][ NComm ] = - C[ NComm ][ j ];
+ }
+ 
+ bound.resize(NArcs);
+ items = NComm;
+  if(filetype == 's'){
+   items++;
+   Integrality.resize(NComm+1);
+   for( Index j = 0 ; j < NComm ; ++j )  {
+   Integrality[ j ] = false;
+   Integrality[ NComm ] = true; 
+   }
+   for( Index j = 0 ; j < NArcs ; ++j )  {
+   bound[j] = 0;
+   }
+  }else{
+  Integrality.resize(NComm);
+   for( Index j = 0 ; j < NComm ; ++j )  {
+   Integrality[ j ] = false;
+   }
+   for( Index j = 0 ; j < NArcs ; ++j )  {
+   bound[j] = UTot[j];
+   }
+  }
 
  }  // end( MMCFBlock::Load )
 

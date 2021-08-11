@@ -299,6 +299,13 @@ public:
  FMultiVector B;      ///< Matrix of the node deficits
  FMultiVector I;      ///< Matrix of the integrality constraints for the variables
 
+ int items;
+ std::vector< double > bound;
+ std::vector< bool > Integrality;
+ FMultiVector weights;
+ FMultiVector costs;
+  
+
  Vec_FNumber UTot;    ///< Vector of mutual capacities
 
  Subset Startn;       ///< Topology of the graph: starting nodes
@@ -323,7 +330,7 @@ public:
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
  
- bool FlowRelaxation; ///< true if we use the flow relaxation and false if we use the knapsack relaxation
+ bool FlowRelaxation=false; ///< true if we use the flow relaxation and false if we use the knapsack relaxation
 
  std::vector<FRowConstraint> MCs;  ///< the static mutual capacity constrs.
 

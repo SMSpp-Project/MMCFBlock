@@ -9,9 +9,11 @@
 #   have been defined already (typically by including SMS++/lib/makefile).   #
 #   Accordingly, all necessary OBJ, H, -I directives, external libraries     #
 #   + -L<libdirs> are added to the corresponding MMCF* macros.               #
-#                                                                            #
+#   
 #   Input:  $(CC)       = compiler command                                   #
 #           $(SW)       = compiler options                                   #
+#   Input:  $(CC)      = compiler command                                    #
+#           $(SW)      = compiler options                                    #
 #           $(SMS++INC) = the -I$( core SMS++ directory )                    #
 #           $(SMS++OBJ) = the core SMS++ library                             #
 #           $(MMCFSDR) = the directory where MMCFBlock source is             #
@@ -22,7 +24,7 @@
 #           $(MMCFINC) = the -I$( MMCFBlock directory )                      #
 #                                                                            #
 #                                VERSION 1.00                                #
-#                               16 - 07 - 2021                               #
+#                                16 - 07 - 2021                               #
 #                                                                            #
 #                              Antonio Frangioni                             #
 #                          Operations Research Group                         #
