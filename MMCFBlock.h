@@ -305,6 +305,7 @@ public:
  FMultiVector weights;
  FMultiVector costs;
   
+ char filetypeBlock; 
 
  Vec_FNumber UTot;    ///< Vector of mutual capacities
 
