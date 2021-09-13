@@ -117,19 +117,23 @@ else{
  
  
 for( Index j = 0 ; j < NArcs ; j++ ){ 
- weights[ j ].resize( NComm + 1 );
- costs[ j ].resize( NComm + 1 );
+ if( filetypeBlock == 's' ){
+   weights[ j ].resize( NComm + 1 );
+   costs[ j ].resize( NComm + 1 );
+ }else{
+   weights[ j ].resize( NComm);
+   costs[ j ].resize( NComm);
+ }
    for(Index k =0; k< NComm; k++){
      weights[ j ][ k ] = U[ k ][ j ];
      costs[ j ][ k ] =  C[ k ][ j ] * U[ k ][ j ];
    }
    
-   weights[ j ][ NComm ] = - UTot[ j ];
-   if( filetypeBlock == 's' )
+   if( filetypeBlock == 's' ){
      costs[ j ][ NComm ] =  C[ NComm ][ j ];
+     weights[ j ][ NComm ] = - UTot[ j ];
+   }
  }
- 
- cout<< NInt[NComm] << endl;
  
  bound.resize(NArcs);
  items = NComm;
@@ -138,7 +142,7 @@ for( Index j = 0 ; j < NArcs ; j++ ){
    Integrality.resize(NComm+1);
    for( Index j = 0 ; j < NComm ; ++j )  {
    Integrality[ j ] = false;
-   Integrality[ NComm ] = false; 
+   Integrality[ NComm ] = true; 
    }
    for( Index j = 0 ; j < NArcs ; ++j )  {
    bound[j] = 0;
@@ -277,6 +281,50 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  }
  
    add_static_constraint( FCs, "Flow" );
+   
+   
+ if(slc){
+ 
+ boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffsSLC( boost::extents[get_NComm()][get_NArcs()] );
+  
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+   coeffsSLC[ k ][ i ].resize( 2 );
+   }
+  }
+
+  // construct the vector of coefficients, static phase
+
+
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for(  Index i = 0; i < get_NArcs() ; ++i ) {
+
+   coeffsSLC[ k ][ i ][ 0 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( 1 )  ) ;
+   
+ coeffsSLC[ k ][ i ][ 1 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( get_NComm() ))  ,  double( -1 )  ) ;
+
+   }
+ }
+ 
+ SLCs.resize( boost::extents[ get_NComm() ][ get_NArcs() ]);
+ 
+ for(  Index i = 0; i < get_NArcs() ; ++i ){ 
+   for( Index k = 0 ; k < get_NComm() ; ++k ) {  
+   
+    (SLCs)[ k ][ i ].set_lhs( -Inf<double>() );
+    
+    (SLCs)[ k ][ i ].set_rhs( 0 );
+    
+    (SLCs)[ k ][ i ].set_function( new LinearFunction( std::move( coeffsSLC[ k ][ i ] ) , 0 ) );
+    
+   }
+ }
+ 
+   add_static_constraint( SLCs, "StrongForcCons" );
+ 
+ 
+ }
+ 
  
  }
  AR |= HasMutual;

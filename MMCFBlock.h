@@ -333,8 +333,11 @@ public:
  
  bool FlowRelaxation=false; ///< true if we use the flow relaxation and false if we use the knapsack relaxation
 
- std::vector<FRowConstraint> MCs;  ///< the static mutual capacity constrs.
- boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs.
+ bool slc=false;
+
+ std::vector<FRowConstraint> MCs;                ///< the static mutual capacity constrs.
+ boost::multi_array< FRowConstraint , 2 > FCs;   ///< the static flow constrs.
+ boost::multi_array< FRowConstraint , 2 > SLCs;  ///< the static flow constrs.
 
 
  char instance_type;
