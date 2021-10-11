@@ -91,7 +91,8 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
-if(FlowRelaxation == true){
+//if(FlowRelaxation == true){
+if( AR & FlowRelaxation){
 
  v_Block.resize( NComm );
  
@@ -110,7 +111,12 @@ else{
 
 
  //construct vectors for the flow relaxation
- 
+ int items;
+ std::vector< double > bound;
+ std::vector< bool > Integrality;
+ FMultiVector weights;
+ FMultiVector costs;
+ double Cmax=0;
  
  weights.resize( NArcs + 1 );  // allocate weights for the knapsack sub-problem
  costs.resize( NArcs + 1 );  // allocate costs for the knapsack sub-problem
@@ -120,19 +126,23 @@ for( Index j = 0 ; j < NArcs ; j++ ){
  if( filetypeBlock == 's' ){
    weights[ j ].resize( NComm + 1 );
    costs[ j ].resize( NComm + 1 );
- }else{
+   }else{
    weights[ j ].resize( NComm);
    costs[ j ].resize( NComm);
- }
+   for(Index k=0;k < NComm; k++)
+       Cmax += 2*C[ k ][ j ]; 
+   }
    for(Index k =0; k< NComm; k++){
-     weights[ j ][ k ] = U[ k ][ j ];
-     costs[ j ][ k ] =  C[ k ][ j ] * U[ k ][ j ];
+     weights[ j ][ k ] = UTot[ j ];
+     costs[ j ][ k ] =  C[ k ][ j ]*UTot[ j ];
+     if( C[ k ][ j ] >= Inf<double>())
+         costs[ j ][ k ] = Cmax*UTot[j];
    }
    
-   if( filetypeBlock == 's' ){
+  if( filetypeBlock == 's' ){
      costs[ j ][ NComm ] =  C[ NComm ][ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
-   }
+  }
  }
  
  bound.resize(NArcs);
@@ -141,9 +151,9 @@ for( Index j = 0 ; j < NArcs ; j++ ){
    items++;
    Integrality.resize(NComm+1);
    for( Index j = 0 ; j < NComm ; ++j )  {
-   Integrality[ j ] = false;
-   Integrality[ NComm ] = true; 
+      Integrality[ j ] = false; 
    }
+   Integrality[ NComm ] = true; 
    for( Index j = 0 ; j < NArcs ; ++j )  {
    bound[j] = 0;
    }
@@ -164,11 +174,13 @@ for( Index j = 0 ; j < NArcs ; j++ ){
   auto BKb = new BinaryKnapsackBlock( this );
   
   BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
+  BKb->set_objective_sense(false);
   v_Block[ j ] = BKb;
   
   }
-}
 
+}
+  
  // call the base class method to have it done in the sub-Block, if any
  Block::generate_abstract_variables();
 
@@ -187,7 +199,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   blck->generate_abstract_constraints();
 
 
- if(FlowRelaxation==true){
+// if(FlowRelaxation==true){
+ if( AR & FlowRelaxation ){
  
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   Subset count( get_NArcs() );
@@ -218,7 +231,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
     MCs[ j ].set_lhs( -Inf<double>() );
     }
    }
-  else {
+  else{
    MCs.resize( get_NArcs() );
    for( Index j = 0 ; j < get_NArcs() ; ++j ) {
     if( UTot[ j ] >= Inf<double>() )
@@ -264,9 +277,9 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   for(  Index i = 0; i < get_NArcs() ; ++i ) {
     if(Startn[ i ]==Endn[ i ])
        continue;
-   coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( U[ k ][ i ] )  ) ;
+   coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ i ] )  ) ;
 
-   coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - U[ k ][ i ]  )  ) ;
+   coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ i ]  )  ) ;
    }
  }
  
@@ -283,7 +296,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
    add_static_constraint( FCs, "Flow" );
    
    
- if(slc){
+// if(slc){
+if(AR & slc){
  
  boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffsSLC( boost::extents[get_NComm()][get_NArcs()] );
   
@@ -302,7 +316,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
    coeffsSLC[ k ][ i ][ 0 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( 1 )  ) ;
    
  coeffsSLC[ k ][ i ][ 1 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( get_NComm() ))  ,  double( -1 )  ) ;
-
+//  std::cout << "-UTot["<<i<<"]/U["<<k<<"]["<<i<<"]="<<-UTot[i]<<"/"<<U[k][i]<<std::endl;
    }
  }
  

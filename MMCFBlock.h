@@ -281,6 +281,18 @@ public:
 
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
+ 
+  static constexpr unsigned char FlowRelaxation = 4; 
+  ///< third bit of AR == 1
+  ///< true if we use the flow relaxation and false if we use the knapsack relaxation
+
+  static constexpr unsigned char slc = 8;
+  ///< fourth bit of AR == 1
+  ///< true if we use the strong forcing constraints
+
+
+//  bool FlowRelaxation=false;
+//  bool slc=false;
 
  Index NXtrV;         ///< Number of "extra" variables
  Index NXtrC;         ///< Number of "extra" constraints
@@ -299,11 +311,11 @@ public:
  FMultiVector B;      ///< Matrix of the node deficits
  FMultiVector I;      ///< Matrix of the integrality constraints for the variables
 
- int items;
- std::vector< double > bound;
- std::vector< bool > Integrality;
- FMultiVector weights;
- FMultiVector costs;
+// int items;
+// std::vector< double > bound;
+// std::vector< bool > Integrality;
+// FMultiVector weights;
+// FMultiVector costs;
   
  char filetypeBlock; 
 
@@ -315,7 +327,7 @@ public:
  MultiSubset WIsInt;  ///< Which of the variables are integer-valued
 
  Index StrtNme;       ///< The "name" of the first node
- Subset NamesK;    ///< The dual multipliers relative to commodity K
+ Subset NamesK;       ///< The dual multipliers relative to commodity K
                       ///< start with NamesK[ k ] and end with
                       ///< NamesK[ k + 1 ]
  Subset Active;       ///< Set of the arcs for which a mutual capacity
@@ -331,9 +343,6 @@ public:
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
  
- bool FlowRelaxation=false; ///< true if we use the flow relaxation and false if we use the knapsack relaxation
-
- bool slc=false;
 
  std::vector<FRowConstraint> MCs;                ///< the static mutual capacity constrs.
  boost::multi_array< FRowConstraint , 2 > FCs;   ///< the static flow constrs.
