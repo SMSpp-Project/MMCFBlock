@@ -41,6 +41,13 @@ using namespace SMSpp_di_unipi_it;
 using namespace std;
 
 /*--------------------------------------------------------------------------*/
+/*--------------------------------- TYPES ----------------------------------*/
+/*--------------------------------------------------------------------------*/
+
+
+using Index = Block::Index;
+
+/*--------------------------------------------------------------------------*/
 /*-------------------------------- MACROS ----------------------------------*/
 /*--                                                                      --*/
 /*--      Some small macro definitions, used throughout the code.         --*/
@@ -285,7 +292,6 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  
 // boost::multi_array< FRowConstraint , 2 >  
  FCs.resize( boost::extents[ get_NComm() ][ get_NNodes() ]);
- 
  for(  Index i = 0; i < get_NNodes() ; ++i ){ 
    for( Index k = 0 ; k < get_NComm() ; ++k ) {  
     (FCs)[ k ][ i ].set_both( B.empty() ? 0 : B[ k ][ i ] );
@@ -296,7 +302,6 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
    add_static_constraint( FCs, "Flow" );
    
    
-// if(slc){
 if(AR & slc){
  
  boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffsSLC( boost::extents[get_NComm()][get_NArcs()] );
@@ -316,7 +321,6 @@ if(AR & slc){
    coeffsSLC[ k ][ i ][ 0 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( 1 )  ) ;
    
  coeffsSLC[ k ][ i ][ 1 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( get_NComm() ))  ,  double( -1 )  ) ;
-//  std::cout << "-UTot["<<i<<"]/U["<<k<<"]["<<i<<"]="<<-UTot[i]<<"/"<<U[k][i]<<std::endl;
    }
  }
  
@@ -345,6 +349,8 @@ if(AR & slc){
  
 
  }  // end( MMCFBlock::generate_abstract_constraints() )
+
+/*-------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
 

@@ -226,6 +226,63 @@ public:
  /// get the number of commodities
 
  Index get_NComm( void ) const { return( NComm ); }
+ 
+/*--------------------------------------------------------------------------*/ 
+ 
+ double get_flow(Index k, Index i) const {
+   if( AR & FlowRelaxation ){
+     return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
+   }else{
+     return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
+   }
+ }
+ 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */ 
+ 
+ void get_flow( std::vector< double > & fk , Index k ) const {
+   if( AR & FlowRelaxation ){
+     (static_cast<MCFBlock *>( v_Block[k] ))->get_x(fk,std::make_pair(0,NArcs));
+   }else{
+     for(int i=0; i<NArcs;i++)
+       fk[i] = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+   }
+ }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/* ColVariable * get_flow_variable(Index k, Index i){
+   if( AR & FlowRelaxation ){
+      auto sol = ((static_cast<MCFBlock *>( v_Block[k] ))->get_Solution())->clone();
+      return sol;
+   }else{
+       return (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_Var(k);
+   }   
+ 
+ }
+ */
+ void rescale_flow(){
+   if( !(AR & FlowRelaxation) ){
+     for(int i=0; i<NArcs;i++)
+       for(int k=0; k<NComm; k++){
+          double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+          double value = x*UTot[i];
+          (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
+       }
+   }  
+ }
+
+ double get_x_tilde(Index k, Index i){
+   if( !(AR & FlowRelaxation) ){
+       double y = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(NComm);
+       double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+       double value = C[k][i]*x+y*C[NComm][i]/UTot[i];
+       (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
+       return value;
+   }else{
+      return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
+   }  
+ }
+
+
 
 /*@}------------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
@@ -285,14 +342,14 @@ public:
   static constexpr unsigned char FlowRelaxation = 4; 
   ///< third bit of AR == 1
   ///< true if we use the flow relaxation and false if we use the knapsack relaxation
-
+  ///< WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION IS IN [0,1]
+  ///< TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS NECESSARY TO RESCALE x^k_{ij}->u_{ij}x^k_{ij}
+  
+  
   static constexpr unsigned char slc = 8;
   ///< fourth bit of AR == 1
   ///< true if we use the strong forcing constraints
 
-
-//  bool FlowRelaxation=false;
-//  bool slc=false;
 
  Index NXtrV;         ///< Number of "extra" variables
  Index NXtrC;         ///< Number of "extra" constraints
@@ -311,12 +368,6 @@ public:
  FMultiVector B;      ///< Matrix of the node deficits
  FMultiVector I;      ///< Matrix of the integrality constraints for the variables
 
-// int items;
-// std::vector< double > bound;
-// std::vector< bool > Integrality;
-// FMultiVector weights;
-// FMultiVector costs;
-  
  char filetypeBlock; 
 
  Vec_FNumber UTot;    ///< Vector of mutual capacities
@@ -346,7 +397,7 @@ public:
 
  std::vector<FRowConstraint> MCs;                ///< the static mutual capacity constrs.
  boost::multi_array< FRowConstraint , 2 > FCs;   ///< the static flow constrs.
- boost::multi_array< FRowConstraint , 2 > SLCs;  ///< the static flow constrs.
+ boost::multi_array< FRowConstraint , 2 > SLCs;  ///< the static strong forcing constrs.
 
 
  char instance_type;
