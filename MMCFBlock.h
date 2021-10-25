@@ -233,7 +233,9 @@ public:
    if( AR & FlowRelaxation ){
      return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
    }else{
-     return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
+     if(k==NComm)
+        return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
+     else return( UTot[i]*((static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k)));   
    }
  }
  
@@ -243,8 +245,15 @@ public:
    if( AR & FlowRelaxation ){
      (static_cast<MCFBlock *>( v_Block[k] ))->get_x(fk,std::make_pair(0,NArcs));
    }else{
-     for(int i=0; i<NArcs;i++)
-       fk[i] = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+      if(k==NComm){
+         for(int i=0; i<NArcs;i++)
+             fk[i] = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+      }else{
+         for(int i=0; i<NArcs;i++){
+             double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+             fk[i] = x*UTot[i];
+          }
+      }
    }
  }
 
@@ -259,29 +268,19 @@ public:
  
  }
  */
- void rescale_flow(){
-   if( !(AR & FlowRelaxation) ){
-     for(int i=0; i<NArcs;i++)
-       for(int k=0; k<NComm; k++){
-          double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-          double value = x*UTot[i];
-          (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
-       }
-   }  
- }
 
- double get_x_tilde(Index k, Index i){
+ /*double get_x_tilde(Index k, Index i){
    if( !(AR & FlowRelaxation) ){
        double y = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(NComm);
        double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-       double value = C[k][i]*x+y*C[NComm][i]/UTot[i];
+       double value = C[k][i]*x + y*C[NComm][i]/UTot[i];
        (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
        return value;
    }else{
       return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
    }  
  }
-
+*/
 
 
 /*@}------------------------------------------------------------------------*/

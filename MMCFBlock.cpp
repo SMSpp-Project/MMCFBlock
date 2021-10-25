@@ -289,8 +289,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
    coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ i ]  )  ) ;
    }
  }
- 
-// boost::multi_array< FRowConstraint , 2 >  
+   
  FCs.resize( boost::extents[ get_NComm() ][ get_NNodes() ]);
  for(  Index i = 0; i < get_NNodes() ; ++i ){ 
    for( Index k = 0 ; k < get_NComm() ; ++k ) {  
