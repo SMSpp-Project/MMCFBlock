@@ -228,7 +228,11 @@ public:
  Index get_NComm( void ) const { return( NComm ); }
  
 /*--------------------------------------------------------------------------*/ 
- 
+// given a commodity index k and an arc index ij, this function provides the value of the
+// associated variable x^k_ij.
+// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
+// x \in [0,1]. In this case the functions get_flow provide the values already rescaled wigth x^k_{ij} in [0,u_ij]
+
  double get_flow(Index k, Index i) const {
    if( AR & FlowRelaxation ){
      return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
@@ -240,7 +244,7 @@ public:
  }
  
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */ 
- 
+// get all the values for the flow and design variables associated to a given commodity  
  void get_flow( std::vector< double > & fk , Index k ) const {
    if( AR & FlowRelaxation ){
      (static_cast<MCFBlock *>( v_Block[k] ))->get_x(fk,std::make_pair(0,NArcs));
@@ -258,17 +262,26 @@ public:
  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-/* ColVariable * get_flow_variable(Index k, Index i){
+// given a commodity index k and an arc index ij, this function provides a pointer to the
+// associated variable x^k_ij.
+// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
+// x \in [0,1]. Hence to obtain the value associated to the 'real' formulation we have to rescale the
+// values as x^k_ij*u_ij
+
+ ColVariable * get_flow_variable(Index k, Index i){
    if( AR & FlowRelaxation ){
-      auto sol = ((static_cast<MCFBlock *>( v_Block[k] ))->get_Solution())->clone();
-      return sol;
+       return (static_cast<MCFBlock *>( v_Block[k] ))->i2p_x(i);
    }else{
        return (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_Var(k);
    }   
  
  }
- */
 
+ unsigned char useFlowRelaxation(){
+    return AR&FlowRelaxation;
+ }
+ 
+ 
  /*double get_x_tilde(Index k, Index i){
    if( !(AR & FlowRelaxation) ){
        double y = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(NComm);
@@ -343,6 +356,7 @@ public:
   ///< true if we use the flow relaxation and false if we use the knapsack relaxation
   ///< WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION IS IN [0,1]
   ///< TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS NECESSARY TO RESCALE x^k_{ij}->u_{ij}x^k_{ij}
+  ///< the functions get_flow provides the value of the variable already rescaled
   
   
   static constexpr unsigned char slc = 8;

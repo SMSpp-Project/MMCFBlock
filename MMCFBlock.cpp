@@ -29,7 +29,7 @@
 /*--------------------------------------------------------------------------*/
 
 #include "MMCFBlock.h"
-
+#include "Configuration.h"
 #include "SMSTypedefs.h"
 #include <math.h>
 
@@ -95,7 +95,17 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   }
 
  // TODO: check stvv and construct other formulations accordingly
-
+  auto c = Configuration::deserialize("GAVPar.txt");
+  stvv = dynamic_cast< SimpleConfiguration<int> * >( c );
+  if( ! stvv ) {
+   cerr << "Error: configuration file not a BlockSolverConfig" << endl;
+   delete c;
+   exit( 1 );
+  }
+ unsigned char fr =  dynamic_cast< SimpleConfiguration<int> * >(stvv)->value();
+ AR = (AR & (~4))|(4*fr);
+ 
+ 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
 //if(FlowRelaxation == true){
@@ -124,9 +134,67 @@ else{
  FMultiVector weights;
  FMultiVector costs;
  double Cmax=0;
+
+if(Active.size()){
+ weights.resize( NCnst  );  // allocate weights for the knapsack sub-problem
+ costs.resize( NCnst  );  // allocate costs for the knapsack sub-problem
+ bound.resize(NCnst);
+
+for( Index j = 0 ; j < NCnst ; j++ ){ 
+ if( filetypeBlock == 's' ){
+   weights[ j ].resize( NComm + 1 );
+   costs[ j ].resize( NComm + 1 );
+   }else{
+   weights[ j ].resize( NComm);
+   costs[ j ].resize( NComm);
+   }
+//   for(Index k=0;k < NComm; k++)
+//       Cmax += NNodes*C[ k ][ Active[j] ]; 
+   for(Index k =0; k< NComm; k++){
+     weights[ j ][ k ] = UTot[ Active[j] ];
+     costs[ j ][ k ] =  C[ k ][ Active[j] ]*UTot[ Active[j] ];
+//     if( C[ k ][ j ] >= Inf<double>())
+//         costs[ j ][ k ] = Cmax*UTot[ Active[j] ];
+   }
+   
+  if( filetypeBlock == 's' ){
+     costs[ j ][ NComm ] =  C[ NComm ][ Active[j] ];
+     weights[ j ][ NComm ] = - UTot[ Active[j] ];
+  }
+ }
  
- weights.resize( NArcs + 1 );  // allocate weights for the knapsack sub-problem
- costs.resize( NArcs + 1 );  // allocate costs for the knapsack sub-problem
+ items = NComm;
+  if(filetypeBlock == 's'){
+   items++;
+   Integrality.resize(NComm+1);
+   for( Index k = 0 ; k < NComm ; ++k )  {
+      Integrality[ k ] = false; 
+   }
+   Integrality[ NComm ] = true; 
+   for( Index j = 0 ; j < NCnst ; ++j )  {
+    bound[j] = 0;
+   }
+  }else{
+   Integrality.resize(NComm);
+   for( Index k = 0 ; k < NComm ; ++k )  {
+    Integrality[ k ] = false;
+   }
+   for( Index j = 0 ; j < NCnst ; ++j )  {
+    bound[j] = UTot[Active[j]];
+   }
+  }
+   v_Block.resize( NCnst );
+ 
+ for( Index j = 0; j < NCnst; j++ ){
+  auto BKb = new BinaryKnapsackBlock( this );
+  BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
+  BKb->set_objective_sense(false);
+  v_Block[ j ] = BKb;
+  }
+  
+}else{ 
+ weights.resize( NArcs  );  // allocate weights for the knapsack sub-problem
+ costs.resize( NArcs  );  // allocate costs for the knapsack sub-problem
  
  
 for( Index j = 0 ; j < NArcs ; j++ ){ 
@@ -136,9 +204,9 @@ for( Index j = 0 ; j < NArcs ; j++ ){
    }else{
    weights[ j ].resize( NComm);
    costs[ j ].resize( NComm);
-   for(Index k=0;k < NComm; k++)
-       Cmax += 2*C[ k ][ j ]; 
    }
+   for(Index k=0;k < NComm; k++)
+       Cmax += NNodes*C[ k ][ j ]; 
    for(Index k =0; k< NComm; k++){
      weights[ j ][ k ] = UTot[ j ];
      costs[ j ][ k ] =  C[ k ][ j ]*UTot[ j ];
@@ -179,11 +247,10 @@ for( Index j = 0 ; j < NArcs ; j++ ){
  
  for( Index j = 0; j < NArcs; j++ ){
   auto BKb = new BinaryKnapsackBlock( this );
-  
   BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
   BKb->set_objective_sense(false);
   v_Block[ j ] = BKb;
-  
+  }
   }
 
 }
@@ -200,11 +267,20 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 {
  if( AR & HasMutual )
   return;
+  
+ auto c = Configuration::deserialize("GACPar.txt");
+ stcc = dynamic_cast< SimpleConfiguration<int> * >( c );
+ if( ! stcc ) {
+   cerr << "Error: configuration file not a BlockSolverConfig" << endl;
+   delete c;
+   exit( 1 );
+ }
+ unsigned char sl =  dynamic_cast< SimpleConfiguration<int> * >(stcc)->value();
+ AR = (AR & (~slc))|(slc*sl);
 
  // do it in the MCF/BKB respectively
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
-
 
 // if(FlowRelaxation==true){
  if( AR & FlowRelaxation ){
@@ -262,13 +338,20 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   
   //coeffs.resize( get_NNodes()*get_NComm() );
   
-   for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for( Index k = 0 ; k < get_NComm() ; ++k ) {
    count[k].resize(get_NNodes());
-  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
-   count[ k ][ Startn[ i ] - 1 ]++;
-   count[ k ][ Endn[ i ] - 1 ]++;
-   }
-   }
+   if(Active.size()){
+     for( Index i = 0 ; i < NCnst ; ++i ) {
+       count[ k ][ Startn[ Active[i] ] - 1 ]++;
+       count[ k ][ Endn[ Active[i] ] - 1 ]++;
+     }
+   }else{   
+     for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+       count[ k ][ Startn[ i ] - 1 ]++;
+       count[ k ][ Endn[ i ] - 1 ]++;
+     }
+   }    
+  }
   
  for( Index k = 0 ; k < get_NComm() ; ++k ) {
   for( Index i = 0 ; i < get_NNodes() ; ++i ) {
@@ -281,12 +364,21 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 
 
  for( Index k = 0 ; k < get_NComm() ; ++k ) {
-  for(  Index i = 0; i < get_NArcs() ; ++i ) {
-    if(Startn[ i ]==Endn[ i ])
-       continue;
-   coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ i ] )  ) ;
+  if(Active.size()){
+    for(  Index i = 0; i < NCnst ; ++i ) {
+      if(Startn[ Active[i] ]==Endn[ Active[i] ])
+        continue;
+      coeffs[ k ][ Startn[ Active[i] ] - 1 ][ count[ k ][ Startn[ Active[i] ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ Active[i] ] )  ) ;
+      coeffs[ k ][ Endn[ Active[i] ] - 1 ][ count[ k ][ Endn[ Active[i] ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ Active[i] ]  )  ) ;
+    }
+  }else{
+    for(  Index i = 0; i < get_NArcs() ; ++i ) {
+      if(Startn[ i ]==Endn[ i ])
+         continue;
+     coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ i ] )  ) ;
 
-   coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ i ]  )  ) ;
+     coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ i ]  )  ) ;
+     }
    }
  }
    
