@@ -181,7 +181,11 @@ public:
   * SimpleConfiguration< int >, then the f_value (an int) dictates which
   * MMCF formulation as follows:
   *
-  * - [currently all values]: the standard flow formulation in which k
+  * - [0]: the standard knapsack formulation in which nArcs
+  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity, and the
+  *   flow constraints are handled in the father MMCFBlock;
+  *
+  * - [1]: the standard flow formulation in which k
   *   MCFBlock sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *
@@ -239,7 +243,7 @@ public:
    }else{
      if(k==NComm)
         return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
-     else return( UTot[i]*((static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k)));   
+     else return( U[k][i]*((static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k)));   
    }
  }
  
@@ -255,7 +259,7 @@ public:
       }else{
          for(int i=0; i<NArcs;i++){
              double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-             fk[i] = x*UTot[i];
+             fk[i] = x*U[k][i];
           }
       }
    }

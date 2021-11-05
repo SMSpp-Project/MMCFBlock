@@ -95,14 +95,29 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   }
 
  // TODO: check stvv and construct other formulations accordingly
-  auto c = Configuration::deserialize("GAVPar.txt");
-  stvv = dynamic_cast< SimpleConfiguration<int> * >( c );
-  if( ! stvv ) {
-   cerr << "Error: configuration file not a BlockSolverConfig" << endl;
-   delete c;
-   exit( 1 );
-  }
- unsigned char fr =  dynamic_cast< SimpleConfiguration<int> * >(stvv)->value();
+ unsigned char fr=0;
+ 
+ if(stvv){
+   auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
+   fr = c->value();
+ }else{   
+   if( ( ! stvv ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
+     auto c = dynamic_cast<SimpleConfiguration<int> *>(
+                        f_BlockConfig->f_static_variables_Configuration );
+     fr=c->value();
+   }else{ 
+   fr=0; 
+   }
+ } 
+// auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
+// if( ( ! c ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
+//   auto c = dynamic_cast<SimpleConfiguration<int> *>(
+//                     f_BlockConfig->f_static_variables_Configuration );
+// }
+ 
+// if(c)
+//   fr=c->value();
+ 
  AR = (AR & (~4))|(4*fr);
  
  
@@ -119,14 +134,11 @@ if( AR & FlowRelaxation){
    do something more clever
    !!*/
 
-  auto MCFb = new MCFBlock( this );
-  MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
-  v_Block[ k ] = MCFb;
+    auto MCFb = new MCFBlock( this );
+    MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
+    v_Block[ k ] = MCFb;
   }
-}
-else{
-
-
+}else{
  //construct vectors for the flow relaxation
  int items;
  std::vector< double > bound;
@@ -135,26 +147,26 @@ else{
  FMultiVector costs;
  double Cmax=0;
 
-if(Active.size()){
- weights.resize( NCnst  );  // allocate weights for the knapsack sub-problem
- costs.resize( NCnst  );  // allocate costs for the knapsack sub-problem
- bound.resize(NCnst);
+if(NCnst != NArcs){
+ weights.resize( NCnst );  // allocate weights for the knapsack sub-problem
+ costs.resize( NCnst );  // allocate costs for the knapsack sub-problem
+ bound.resize( NCnst );
 
 for( Index j = 0 ; j < NCnst ; j++ ){ 
  if( filetypeBlock == 's' ){
    weights[ j ].resize( NComm + 1 );
    costs[ j ].resize( NComm + 1 );
    }else{
-   weights[ j ].resize( NComm);
-   costs[ j ].resize( NComm);
+   weights[ j ].resize( NComm );
+   costs[ j ].resize( NComm );
    }
 //   for(Index k=0;k < NComm; k++)
 //       Cmax += NNodes*C[ k ][ Active[j] ]; 
    for(Index k =0; k< NComm; k++){
-     weights[ j ][ k ] = UTot[ Active[j] ];
-     costs[ j ][ k ] =  C[ k ][ Active[j] ]*UTot[ Active[j] ];
+     weights[ j ][ k ] = U[ k ][ Active[j] ];
+     costs[ j ][ k ] =  C[ k ][ Active[j] ]*U[ k ][ Active[j] ];
 //     if( C[ k ][ j ] >= Inf<double>())
-//         costs[ j ][ k ] = Cmax*UTot[ Active[j] ];
+//         costs[ j ][ k ] = Cmax*U[k][ Active[j] ];
    }
    
   if( filetypeBlock == 's' ){
@@ -208,10 +220,10 @@ for( Index j = 0 ; j < NArcs ; j++ ){
    for(Index k=0;k < NComm; k++)
        Cmax += NNodes*C[ k ][ j ]; 
    for(Index k =0; k< NComm; k++){
-     weights[ j ][ k ] = UTot[ j ];
-     costs[ j ][ k ] =  C[ k ][ j ]*UTot[ j ];
+     weights[ j ][ k ] = U[k][ j ];
+     costs[ j ][ k ] =  C[ k ][ j ]*U[k][ j ];
      if( C[ k ][ j ] >= Inf<double>())
-         costs[ j ][ k ] = Cmax*UTot[j];
+         costs[ j ][ k ] = Cmax*U[k][j];
    }
    
   if( filetypeBlock == 's' ){
@@ -268,14 +280,22 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  if( AR & HasMutual )
   return;
   
- auto c = Configuration::deserialize("GACPar.txt");
- stcc = dynamic_cast< SimpleConfiguration<int> * >( c );
- if( ! stcc ) {
-   cerr << "Error: configuration file not a BlockSolverConfig" << endl;
-   delete c;
-   exit( 1 );
+   // if upper bounds are not there and the Configuration says so, the
+  // LB0Constraintare not constructed
+ unsigned char sl=0;
+ if(stcc){
+   auto c = dynamic_cast<SimpleConfiguration<int> *>( stcc );
+   sl = c->value();
+ }else{
+   if( ( ! stcc ) && f_BlockConfig && f_BlockConfig->f_static_constraints_Configuration ){
+     auto c = dynamic_cast<SimpleConfiguration<int> *>(
+                        f_BlockConfig->f_static_constraints_Configuration );
+     sl=c->value();
+   }else{ 
+   sl=0; 
+   }
  }
- unsigned char sl =  dynamic_cast< SimpleConfiguration<int> * >(stcc)->value();
+
  AR = (AR & (~slc))|(slc*sl);
 
  // do it in the MCF/BKB respectively
@@ -302,7 +322,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 
  // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
  // each constraint is an inequality, i.e., RHS = UTot[ j ]
-  if( Active.size() ) {
+  if( NCnst != NArcs ) {
    MCs.resize( NCnst );
    for( Index j = 0 ; j < NCnst ; ++j ) {
     if( UTot[ Active[ j ] ] >= Inf<double>() )
@@ -364,20 +384,20 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 
 
  for( Index k = 0 ; k < get_NComm() ; ++k ) {
-  if(Active.size()){
+  if(NCnst != NArcs && Active.size()){
     for(  Index i = 0; i < NCnst ; ++i ) {
       if(Startn[ Active[i] ]==Endn[ Active[i] ])
         continue;
-      coeffs[ k ][ Startn[ Active[i] ] - 1 ][ count[ k ][ Startn[ Active[i] ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ Active[i] ] )  ) ;
-      coeffs[ k ][ Endn[ Active[i] ] - 1 ][ count[ k ][ Endn[ Active[i] ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ Active[i] ]  )  ) ;
+      coeffs[ k ][ Startn[ Active[i] ] - 1 ][ count[ k ][ Startn[ Active[i] ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( U[k][ Active[i] ] )  ) ;
+      coeffs[ k ][ Endn[ Active[i] ] - 1 ][ count[ k ][ Endn[ Active[i] ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - U[k][ Active[i] ]  )  ) ;
     }
   }else{
     for(  Index i = 0; i < get_NArcs() ; ++i ) {
       if(Startn[ i ]==Endn[ i ])
          continue;
-     coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( UTot[ i ] )  ) ;
+     coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( U[k][ i ] )  ) ;
 
-     coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - UTot[ i ]  )  ) ;
+     coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - U[k][ i ]  )  ) ;
      }
    }
  }
