@@ -46,6 +46,7 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 # look for the system-installed libraries.
 if (NOT hasParent)
     find_package(MCFBlock REQUIRED)
+    find_package(BinaryKnapsackBlock REQUIRED)
 endif()
 
 # ----- Configuration header ------------------------------------------------ #
@@ -88,7 +89,8 @@ target_include_directories(
 # library, INTERFACE means they will be linked only to the targets that depend
 # on this library.
 target_link_libraries(${modName} PUBLIC
-                      ${modNamespace}::MCFBlock)
+                      ${modNamespace}::MCFBlock
+                      ${modNamespace}::BinaryKnapsackBlock)
 
 # This alias is defined so that executables in this same project can use
 # the library with this notation.
