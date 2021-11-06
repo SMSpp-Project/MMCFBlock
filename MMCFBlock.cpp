@@ -29,7 +29,7 @@
 /*--------------------------------------------------------------------------*/
 
 #include "MMCFBlock.h"
-
+#include "Configuration.h"
 #include "SMSTypedefs.h"
 #include <math.h>
 
@@ -40,7 +40,12 @@
 using namespace SMSpp_di_unipi_it;
 using namespace std;
 
-using namespace SMSpp_di_unipi_it;
+/*--------------------------------------------------------------------------*/
+/*--------------------------------- TYPES ----------------------------------*/
+/*--------------------------------------------------------------------------*/
+
+
+using Index = Block::Index;
 
 /*--------------------------------------------------------------------------*/
 /*-------------------------------- MACROS ----------------------------------*/
@@ -90,21 +95,178 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   }
 
  // TODO: check stvv and construct other formulations accordingly
-
+ unsigned char fr=0;
+ 
+ if(stvv){
+   auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
+   fr = c->value();
+ }else{   
+   if( ( ! stvv ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
+     auto c = dynamic_cast<SimpleConfiguration<int> *>(
+                        f_BlockConfig->f_static_variables_Configuration );
+     fr=c->value();
+   }else{ 
+   fr=0; 
+   }
+ } 
+// auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
+// if( ( ! c ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
+//   auto c = dynamic_cast<SimpleConfiguration<int> *>(
+//                     f_BlockConfig->f_static_variables_Configuration );
+// }
+ 
+// if(c)
+//   fr=c->value();
+ 
+ AR = (AR & (~4))|(4*fr);
+ 
+ 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
+//if(FlowRelaxation == true){
+if( AR & FlowRelaxation){
+
  v_Block.resize( NComm );
+ 
  for( Index k = 0 ; k < NComm ; ++k ) {
   /*!!
   if( PT[ k ] == kSPT )
    do something more clever
    !!*/
 
-  auto MCFb = new MCFBlock( this );
-  MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
-  v_Block[ k ] = MCFb;
+    auto MCFb = new MCFBlock( this );
+    MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
+    v_Block[ k ] = MCFb;
+  }
+}else{
+ //construct vectors for the flow relaxation
+ int items;
+ std::vector< double > bound;
+ std::vector< bool > Integrality;
+ FMultiVector weights;
+ FMultiVector costs;
+ double Cmax=0;
+
+if(NCnst != NArcs){
+ weights.resize( NCnst );  // allocate weights for the knapsack sub-problem
+ costs.resize( NCnst );  // allocate costs for the knapsack sub-problem
+ bound.resize( NCnst );
+
+for( Index j = 0 ; j < NCnst ; j++ ){ 
+ if( filetypeBlock == 's' ){
+   weights[ j ].resize( NComm + 1 );
+   costs[ j ].resize( NComm + 1 );
+   }else{
+   weights[ j ].resize( NComm );
+   costs[ j ].resize( NComm );
+   }
+//   for(Index k=0;k < NComm; k++)
+//       Cmax += NNodes*C[ k ][ Active[j] ]; 
+   for(Index k =0; k< NComm; k++){
+     weights[ j ][ k ] = U[ k ][ Active[j] ];
+     costs[ j ][ k ] =  C[ k ][ Active[j] ]*U[ k ][ Active[j] ];
+//     if( C[ k ][ j ] >= Inf<double>())
+//         costs[ j ][ k ] = Cmax*U[k][ Active[j] ];
+   }
+   
+  if( filetypeBlock == 's' ){
+     costs[ j ][ NComm ] =  C[ NComm ][ Active[j] ];
+     weights[ j ][ NComm ] = - UTot[ Active[j] ];
+  }
+ }
+ 
+ items = NComm;
+  if(filetypeBlock == 's'){
+   items++;
+   Integrality.resize(NComm+1);
+   for( Index k = 0 ; k < NComm ; ++k )  {
+      Integrality[ k ] = false; 
+   }
+   Integrality[ NComm ] = true; 
+   for( Index j = 0 ; j < NCnst ; ++j )  {
+    bound[j] = 0;
+   }
+  }else{
+   Integrality.resize(NComm);
+   for( Index k = 0 ; k < NComm ; ++k )  {
+    Integrality[ k ] = false;
+   }
+   for( Index j = 0 ; j < NCnst ; ++j )  {
+    bound[j] = UTot[Active[j]];
+   }
+  }
+   v_Block.resize( NCnst );
+ 
+ for( Index j = 0; j < NCnst; j++ ){
+  auto BKb = new BinaryKnapsackBlock( this );
+  BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
+  BKb->set_objective_sense(false);
+  v_Block[ j ] = BKb;
+  }
+  
+}else{ 
+ weights.resize( NArcs  );  // allocate weights for the knapsack sub-problem
+ costs.resize( NArcs  );  // allocate costs for the knapsack sub-problem
+ 
+ 
+for( Index j = 0 ; j < NArcs ; j++ ){ 
+ if( filetypeBlock == 's' ){
+   weights[ j ].resize( NComm + 1 );
+   costs[ j ].resize( NComm + 1 );
+   }else{
+   weights[ j ].resize( NComm);
+   costs[ j ].resize( NComm);
+   }
+   for(Index k=0;k < NComm; k++)
+       Cmax += NNodes*C[ k ][ j ]; 
+   for(Index k =0; k< NComm; k++){
+     weights[ j ][ k ] = U[k][ j ];
+     costs[ j ][ k ] =  C[ k ][ j ]*U[k][ j ];
+     if( C[ k ][ j ] >= Inf<double>())
+         costs[ j ][ k ] = Cmax*U[k][j];
+   }
+   
+  if( filetypeBlock == 's' ){
+     costs[ j ][ NComm ] =  C[ NComm ][ j ];
+     weights[ j ][ NComm ] = - UTot[ j ];
+  }
+ }
+ 
+ bound.resize(NArcs);
+ items = NComm;
+  if(filetypeBlock == 's'){
+   items++;
+   Integrality.resize(NComm+1);
+   for( Index j = 0 ; j < NComm ; ++j )  {
+      Integrality[ j ] = false; 
+   }
+   Integrality[ NComm ] = true; 
+   for( Index j = 0 ; j < NArcs ; ++j )  {
+   bound[j] = 0;
+   }
+  }else{
+  Integrality.resize(NComm);
+   for( Index j = 0 ; j < NComm ; ++j )  {
+   Integrality[ j ] = false;
+   }
+   for( Index j = 0 ; j < NArcs ; ++j )  {
+   bound[j] = UTot[j];
+   }
   }
 
+
+ v_Block.resize( NArcs );
+ 
+ for( Index j = 0; j < NArcs; j++ ){
+  auto BKb = new BinaryKnapsackBlock( this );
+  BKb->load( items, bound[j], weights[ j ], costs[ j ], Integrality ); 
+  BKb->set_objective_sense(false);
+  v_Block[ j ] = BKb;
+  }
+  }
+
+}
+  
  // call the base class method to have it done in the sub-Block, if any
  Block::generate_abstract_variables();
 
@@ -117,58 +279,189 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 {
  if( AR & HasMutual )
   return;
+  
+   // if upper bounds are not there and the Configuration says so, the
+  // LB0Constraintare not constructed
+ unsigned char sl=0;
+ if(stcc){
+   auto c = dynamic_cast<SimpleConfiguration<int> *>( stcc );
+   sl = c->value();
+ }else{
+   if( ( ! stcc ) && f_BlockConfig && f_BlockConfig->f_static_constraints_Configuration ){
+     auto c = dynamic_cast<SimpleConfiguration<int> *>(
+                        f_BlockConfig->f_static_constraints_Configuration );
+     sl=c->value();
+   }else{ 
+   sl=0; 
+   }
+ }
 
- // do it in the MCF
+ AR = (AR & (~slc))|(slc*sl);
+
+ // do it in the MCF/BKB respectively
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
- // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
- Subset count( get_NArcs() );
+// if(FlowRelaxation==true){
+ if( AR & FlowRelaxation ){
+ 
+  // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
+  Subset count( get_NArcs() );
+  
+  // initialize the vectors of coefficients, and reset count[]
+  std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
 
- // initialize the vectors of coefficients, and reset count[]
- std::vector< LinearFunction::v_coeff_pair > coeffs( get_NArcs() );
-
- for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-  coeffs[ j ].resize( NComm );
-  count[ j ] = 0;
-  }
-
- for( Index k = 0 ; k < get_NComm() ; k++ )
-  for( Index j = 0 ; j < get_NArcs() ; ++j )
-    coeffs[ j ][ k ] = std::make_pair(
-      static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+   coeffs[ j ].resize( NComm );
+   count[ j ] = 0;
+   }
+  for( Index k = 0 ; k < get_NComm() ; k++ )
+   for( Index j = 0 ; j < get_NArcs() ; ++j )
+     coeffs[ j ][ k ] = std::make_pair(
+       static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
 
  // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
  // each constraint is an inequality, i.e., RHS = UTot[ j ]
+  if( NCnst != NArcs ) {
+   MCs.resize( NCnst );
+   for( Index j = 0 ; j < NCnst ; ++j ) {
+    if( UTot[ Active[ j ] ] >= Inf<double>() )
+     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
 
- if( Active.size() ) {
-  MCs.resize( NCnst );
-  for( Index j = 0 ; j < NCnst ; ++j ) {
-   if( UTot[ Active[ j ] ] >= Inf<double>() )
-    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-
-   MCs[ j ].set_function( new LinearFunction(
+    MCs[ j ].set_function( new LinearFunction(
 				 std::move( coeffs[ Active[ j ] ] ) , 0 ) );
-   MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
-   MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
+    MCs[ j ].set_lhs( -Inf<double>() );
+    }
    }
+  else{
+   MCs.resize( get_NArcs() );
+   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+    if( UTot[ j ] >= Inf<double>() )
+     throw( std::logic_error( "Constraint required to have a finite rhs" ) );
+    MCs[ j ].set_rhs( UTot[ j ] );
+    MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    }
+   }
+  add_static_constraint( MCs , "Mut" );
+
+ }else{
+ 
+ 
+  // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
+  std::vector< Subset > count( get_NComm() );
+ 
+  // initialize the vectors of coefficients, and reset count[]
+  //std::vector< std::vector < LinearFunction::v_coeff_pair > > coeffs;
+  boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffs( boost::extents[get_NComm()][get_NNodes()] );
+  
+  //coeffs.resize( get_NNodes()*get_NComm() );
+  
+  for( Index k = 0 ; k < get_NComm() ; ++k ) {
+   count[k].resize(get_NNodes());
+   if(Active.size()){
+     for( Index i = 0 ; i < NCnst ; ++i ) {
+       count[ k ][ Startn[ Active[i] ] - 1 ]++;
+       count[ k ][ Endn[ Active[i] ] - 1 ]++;
+     }
+   }else{   
+     for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+       count[ k ][ Startn[ i ] - 1 ]++;
+       count[ k ][ Endn[ i ] - 1 ]++;
+     }
+   }    
   }
- else {
-  MCs.resize( get_NArcs() );
-  for( Index j = 0 ; j < get_NArcs() ; ++j ) {
-   if( UTot[ j ] >= Inf<double>() )
-    throw( std::logic_error( "Constraint required to have a finite rhs" ) );
-   MCs[ j ].set_rhs( UTot[ j ] );
-   MCs[ j ].set_lhs( -Inf<double>() );
-   MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+  
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for( Index i = 0 ; i < get_NNodes() ; ++i ) {
+   coeffs[ k ][ i ].resize( count[ k ][ i ] );
+   count[ k ][ i ] = 0;
    }
   }
 
- add_static_constraint( MCs , "Mut" );
+  // construct the vector of coefficients, static phase
 
+
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  if(NCnst != NArcs && Active.size()){
+    for(  Index i = 0; i < NCnst ; ++i ) {
+      if(Startn[ Active[i] ]==Endn[ Active[i] ])
+        continue;
+      coeffs[ k ][ Startn[ Active[i] ] - 1 ][ count[ k ][ Startn[ Active[i] ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( U[k][ Active[i] ] )  ) ;
+      coeffs[ k ][ Endn[ Active[i] ] - 1 ][ count[ k ][ Endn[ Active[i] ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - U[k][ Active[i] ]  )  ) ;
+    }
+  }else{
+    for(  Index i = 0; i < get_NArcs() ; ++i ) {
+      if(Startn[ i ]==Endn[ i ])
+         continue;
+     coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( U[k][ i ] )  ) ;
+
+     coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] = std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( - U[k][ i ]  )  ) ;
+     }
+   }
+ }
+   
+ FCs.resize( boost::extents[ get_NComm() ][ get_NNodes() ]);
+ for(  Index i = 0; i < get_NNodes() ; ++i ){ 
+   for( Index k = 0 ; k < get_NComm() ; ++k ) {  
+    (FCs)[ k ][ i ].set_both( B.empty() ? 0 : B[ k ][ i ] );
+    (FCs)[ k ][ i ].set_function( new LinearFunction( std::move( coeffs[ k ][ i ] ) , 0 ) );
+   }
+ }
+ 
+   add_static_constraint( FCs, "Flow" );
+   
+   
+if(AR & slc){
+ 
+ boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffsSLC( boost::extents[get_NComm()][get_NArcs()] );
+  
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+   coeffsSLC[ k ][ i ].resize( 2 );
+   }
+  }
+
+  // construct the vector of coefficients, static phase
+
+
+ for( Index k = 0 ; k < get_NComm() ; ++k ) {
+  for(  Index i = 0; i < get_NArcs() ; ++i ) {
+
+   coeffsSLC[ k ][ i ][ 0 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k ))  ,  double( 1 )  ) ;
+   
+ coeffsSLC[ k ][ i ][ 1 ] =  std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( get_NComm() ))  ,  double( -1 )  ) ;
+   }
+ }
+ 
+ SLCs.resize( boost::extents[ get_NComm() ][ get_NArcs() ]);
+ 
+ for(  Index i = 0; i < get_NArcs() ; ++i ){ 
+   for( Index k = 0 ; k < get_NComm() ; ++k ) {  
+   
+    (SLCs)[ k ][ i ].set_lhs( -Inf<double>() );
+    
+    (SLCs)[ k ][ i ].set_rhs( 0 );
+    
+    (SLCs)[ k ][ i ].set_function( new LinearFunction( std::move( coeffsSLC[ k ][ i ] ) , 0 ) );
+    
+   }
+ }
+ 
+   add_static_constraint( SLCs, "StrongForcCons" );
+ 
+ 
+ }
+ 
+ 
+ }
  AR |= HasMutual;
+ 
 
  }  // end( MMCFBlock::generate_abstract_constraints() )
+
+/*-------------------------------------------------------------------------*/
 
 /*--------------------------------------------------------------------------*/
 
@@ -194,7 +487,7 @@ void MMCFBlock::load( const char *const filename , char filetype )
 {
  // check parameters- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
+ filetypeBlock = filetype;
  if( ( filetype != 'm' ) && ( filetype != 'p' ) && ( filetype != 'd' ) &&
      ( filetype != 'o' ) && ( filetype != 'u' ) && ( filetype != 's' ) &&
      ( filetype != 'c' ) )
@@ -435,13 +728,12 @@ void MMCFBlock::load( const char *const filename , char filetype )
   // allocate the data structures for "extra" things- - - - - - - - - - - - -
 
   C[ NComm ].resize( NXtrV = NArcs );
-
-  U[ NComm ].resize( NArcs , FNumber( 0 ) ); // "extra" variables
+  U[ NComm ].resize( NArcs , FNumber( 0 ) );     // "extra" variables
   U[ NComm + 1 ].resize( NArcs , FNumber( 1 ) ); // are in the ...
-                                             // ... [0, 1] range
-  NInt[ NComm ] = NArcs;                     // ... and integer
+                                                 // ... [0, 1] range
+  NInt[ NComm ] = NArcs;                         // ... and integer
 
-  for( Index i = 0 ; i < NArcs ; i++ ) {  // read arc-related info- - - - - -
+  for( Index i = 0 ; i < NArcs ; i++ ) {         // read arc-related info- - - - - -
    inFile >> Endn[ i ];
    GOODN( Endn[ i ] );
 
@@ -1051,9 +1343,8 @@ void MMCFBlock::load( const char *const filename , char filetype )
  delete[] Name;
 
  // common initializations- - - - - - - - - - - - - - - - - - - - - - - - - -
-
  CmnIntlz();
-
+ 
  }  // end( MMCFBlock::Load )
 
 /*--------------------------------------------------------------------------*/

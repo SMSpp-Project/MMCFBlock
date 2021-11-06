@@ -34,7 +34,7 @@
 
 #include "Block.h"
 #include "MCFBlock.h"
-
+#include "BinaryKnapsackBlock.h"
 #include "ColVariable.h"
 #include "FRowConstraint.h"
 #include "Configuration.h"
@@ -181,7 +181,11 @@ public:
   * SimpleConfiguration< int >, then the f_value (an int) dictates which
   * MMCF formulation as follows:
   *
-  * - [currently all values]: the standard flow formulation in which k
+  * - [0]: the standard knapsack formulation in which nArcs
+  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity, and the
+  *   flow constraints are handled in the father MMCFBlock;
+  *
+  * - [1]: the standard flow formulation in which k
   *   MCFBlock sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *
@@ -226,6 +230,75 @@ public:
  /// get the number of commodities
 
  Index get_NComm( void ) const { return( NComm ); }
+ 
+/*--------------------------------------------------------------------------*/ 
+// given a commodity index k and an arc index ij, this function provides the value of the
+// associated variable x^k_ij.
+// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
+// x \in [0,1]. In this case the functions get_flow provide the values already rescaled wigth x^k_{ij} in [0,u_ij]
+
+ double get_flow(Index k, Index i) const {
+   if( AR & FlowRelaxation ){
+     return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
+   }else{
+     if(k==NComm)
+        return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
+     else return( U[k][i]*((static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k)));   
+   }
+ }
+ 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */ 
+// get all the values for the flow and design variables associated to a given commodity  
+ void get_flow( std::vector< double > & fk , Index k ) const {
+   if( AR & FlowRelaxation ){
+     (static_cast<MCFBlock *>( v_Block[k] ))->get_x(fk,std::make_pair(0,NArcs));
+   }else{
+      if(k==NComm){
+         for(int i=0; i<NArcs;i++)
+             fk[i] = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+      }else{
+         for(int i=0; i<NArcs;i++){
+             double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+             fk[i] = x*U[k][i];
+          }
+      }
+   }
+ }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+// given a commodity index k and an arc index ij, this function provides a pointer to the
+// associated variable x^k_ij.
+// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
+// x \in [0,1]. Hence to obtain the value associated to the 'real' formulation we have to rescale the
+// values as x^k_ij*u_ij
+
+ ColVariable * get_flow_variable(Index k, Index i){
+   if( AR & FlowRelaxation ){
+       return (static_cast<MCFBlock *>( v_Block[k] ))->i2p_x(i);
+   }else{
+       return (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_Var(k);
+   }   
+ 
+ }
+
+ unsigned char useFlowRelaxation(){
+    return AR&FlowRelaxation;
+ }
+ 
+ 
+ /*double get_x_tilde(Index k, Index i){
+   if( !(AR & FlowRelaxation) ){
+       double y = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(NComm);
+       double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
+       double value = C[k][i]*x + y*C[NComm][i]/UTot[i];
+       (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
+       return value;
+   }else{
+      return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
+   }  
+ }
+*/
+
 
 /*@}------------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
@@ -281,6 +354,19 @@ public:
 
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
+ 
+  static constexpr unsigned char FlowRelaxation = 4; 
+  ///< third bit of AR == 1
+  ///< true if we use the flow relaxation and false if we use the knapsack relaxation
+  ///< WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION IS IN [0,1]
+  ///< TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS NECESSARY TO RESCALE x^k_{ij}->u_{ij}x^k_{ij}
+  ///< the functions get_flow provides the value of the variable already rescaled
+  
+  
+  static constexpr unsigned char slc = 8;
+  ///< fourth bit of AR == 1
+  ///< true if we use the strong forcing constraints
+
 
  Index NXtrV;         ///< Number of "extra" variables
  Index NXtrC;         ///< Number of "extra" constraints
@@ -297,6 +383,9 @@ public:
  CMultiVector C;      ///< Matrix of the arc costs
  FMultiVector U;      ///< Matrix of the arc upper capacities
  FMultiVector B;      ///< Matrix of the node deficits
+ FMultiVector I;      ///< Matrix of the integrality constraints for the variables
+
+ char filetypeBlock; 
 
  Vec_FNumber UTot;    ///< Vector of mutual capacities
 
@@ -306,7 +395,7 @@ public:
  MultiSubset WIsInt;  ///< Which of the variables are integer-valued
 
  Index StrtNme;       ///< The "name" of the first node
- Subset NamesK;    ///< The dual multipliers relative to commodity K
+ Subset NamesK;       ///< The dual multipliers relative to commodity K
                       ///< start with NamesK[ k ] and end with
                       ///< NamesK[ k + 1 ]
  Subset Active;       ///< Set of the arcs for which a mutual capacity
@@ -321,8 +410,12 @@ public:
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
+ 
 
- std::vector<FRowConstraint> MCs;  ///< the static mutual capacity constrs.
+ std::vector<FRowConstraint> MCs;                ///< the static mutual capacity constrs.
+ boost::multi_array< FRowConstraint , 2 > FCs;   ///< the static flow constrs.
+ boost::multi_array< FRowConstraint , 2 > SLCs;  ///< the static strong forcing constrs.
+
 
  char instance_type;
  std::string instance_name;
