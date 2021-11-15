@@ -43,6 +43,10 @@
 MCFBkSDR = $(MMCFSDR)../MCFBlock/
 include $(MCFBkSDR)makefile-s
 
+# define input macros for BinaryKnapsackBlock makefile, then include it
+BKBkSDR = $(MMCFSDR)../BinaryKnapsackBlock/
+include $(BKBkSDR)makefile
+
 # include the makefile requiring all external modules in input
 include $(MMCFSDR)makefile
 
@@ -50,9 +54,9 @@ include $(MMCFSDR)makefile
 
 # append external -I directives to MILPBINC, MILPBOBJ and MILPBH as defined
 # by the makefile, thus the := assignment has to be used (use GNU make)
-MMCFOBJ := $(MMCFOBJ) $(MCFBkOBJ)
-MMCFH := $(MMCFH) $(MCFBkH)
-MMCFINC := $(MCFBkINC) $(MMCFINC)
+MMCFOBJ := $(MMCFOBJ) $(BKBkOBJ) $(MCFBkOBJ)
+MMCFH := $(MMCFH) $(BKBkH) $(MCFBkH)
+MMCFINC := $(BKBkINC) $(MCFBkINC) $(MMCFINC)
 
 # external libreries for MMCFBlock
 MMCFLIB = $(MCFBkLIB)
