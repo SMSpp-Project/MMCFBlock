@@ -2,25 +2,24 @@
 ################################ makefile ####################################
 ##############################################################################
 #                                                                            #
-#   makefile of [Simple/Structured]MILPBlock                                 #
+#   makefile of MMCFBlock                                                    #
 #                                                                            #
 #   Note that $(SMS++INC) is assumed to include any -I directive             #
 #   corresponding to external libraries needed by SMS++, at least to the     #
-#   extent in which they are needed by the parts of SMS++ used by            #
-#   MMCFBlock.                                            #
+#   extent in which they are needed by the parts of SMS++ used by MMCFBlock. #
 #                                                                            #
 #   Input:  $(CC)       = compiler command                                   #
 #           $(SW)       = compiler options                                   #
 #           $(SMS++INC) = the -I$( core SMS++ directory )                    #
 #           $(SMS++OBJ) = the libSMS++ library itself                        #
-#           $(MMCFSDR) = the directory where the source is                  #
+#           $(MMCFSDR) = the directory where the source is                   #
 #                                                                            #
-#   Output: $(MMCFOBJ) = the final object(s) / library                      #
-#           $(MMCFH)   = the .h files to include                            #
-#           $(MMCFINC) = the -I$( source directory )                        #
+#   Output: $(MMCFOBJ) = the final object(s) / library                       #
+#           $(MMCFH)   = the .h files to include                             #
+#           $(MMCFINC) = the -I$( source directory )                         #
 #                                                                            #
-#                                VERSION 2.00                                #
-#                               12 - 11 - 2018                               #
+#                                VERSION 1.10                                #
+#                               11 - 07 - 2021                               #
 #                                                                            #
 #                              Antonio Frangioni                             #
 #                          Operations Research Group                         #

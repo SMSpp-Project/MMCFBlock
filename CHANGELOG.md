@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2021-12-07
+
+Significant improvements:
+
+- added Lagrangian Knapsack Relaxation
+
+- added the possibility of String Forcing Constraint in the Flow Relaxation
+
+- added functions to get flow
+
+- several fixes
+
 ## [0.1.0] - 2021-02-05
 
 ### Added
