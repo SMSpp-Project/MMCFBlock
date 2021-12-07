@@ -22,7 +22,7 @@
 cmake_minimum_required(VERSION 3.12)
 cmake_policy(VERSION 3.12)
 project(MMCFBlock
-        VERSION 0.1.0
+        VERSION 0.2.0
         DESCRIPTION "SMS++ MMCFBlock module"
         HOMEPAGE_URL https://gitlab.com/smspp/mmcfblock
         LANGUAGES C CXX)

@@ -5,21 +5,19 @@
  * Header file for the *concrete* class MMCFBlock, which implements the
  * Block concept [see Block.h] for a Multicommodity Min Cost Flow problem.
  *
- * \version 0.01
- *
- * \date 30 - 12 - 2020
- *
  * \author Antonio Frangioni \n
- *         Operations Research Group \n
  *         Dipartimento di Informatica \n
  *         Universita' di Pisa \n
  *
  * \author Enrico Gorgone \n
- *         Operations Research Group \n
  *         Dipartimento di Informatica \n
  *         Universita' di Pisa \n
  *
- * Copyright &copy by Antonio Frangioni
+ * \author Francesco Demelas \n
+ *         Laboratoire d'Informatique de Paris Nord \n
+ *         Universite' Sorbonne Paris Nord \n
+ *
+ * Copyright &copy by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
  */
 /*--------------------------------------------------------------------------*/
 /*----------------------------- DEFINITIONS --------------------------------*/
