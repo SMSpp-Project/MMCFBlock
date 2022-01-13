@@ -49,7 +49,7 @@ namespace SMSpp_di_unipi_it
 /*--------------------------------------------------------------------------*/
 /** @name Public Types
  *
- * "Import" basic types from Function and C05Function.
+ * "Import" basic types from MCFBlock.
  *
  *  @{ */
 
@@ -84,7 +84,7 @@ class MMCFBlock : public Block
 /*----------------------- PUBLIC PART OF THE CLASS -------------------------*/
 /*--------------------------------------------------------------------------*/
 
-public:
+ public:
 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- PUBLIC TYPES --------------------------------*/
@@ -108,7 +108,6 @@ public:
 
 /*--------------------------------------------------------------------------*/
  /// destructor of MMCFBlock
- /** Destructor of MMCFBlock. . */
 
  virtual ~MMCFBlock();
 
@@ -133,12 +132,12 @@ public:
   * IncUjk , DecUjk => (>= 0) same as above for single-commodity capacities;
   *
   * ChgDfct         => (>= 0) upper bound on the maximum change, in absolute
-  *                    value, of the node deficits: it must be a finite number,
-  *                    since it is used to generate "loose" but finite
-  *                    individual capacities for arcs that have none;
+  *                    value, of the node deficits: it must be a finite
+  *                    number, since it is used to generate "loose" but
+  *                    finite individual capacities for arcs that have none;
   *
-  *   DecCsts         => (>= 0) upper bound on the decrease of arc Costs: must
-  *                      be < Inf<CNumber>().
+  * DecCsts         => (>= 0) upper bound on the decrease of arc Costs: must
+  *                    be < Inf<CNumber>().
   *
   * Giving tight bounds (0 is the best, obviously) may cause the preprocessor
   * to find more redundant coupling constraints, to squeeze down individual
@@ -179,15 +178,15 @@ public:
   * SimpleConfiguration< int >, then the f_value (an int) dictates which
   * MMCF formulation as follows:
   *
-  * - [0]: the standard knapsack formulation in which nArcs
-  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity, and the
-  *   flow constraints are handled in the father MMCFBlock;
+  * - [0]: the standard knapsack formulation in which get_NArcs()
+  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
+  *   and the flow constraints are handled in the father MMCFBlock;
   *
-  * - [1]: the standard flow formulation in which k
-  *   MCFBlock sub-Block are constructed, one for each commodity, and the
+  * - [1]: the standard flow formulation in which get_NComm() MCFBlock
+  *   sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *
-  * - [other ones to follow].
+  * - [other ones possibly to follow].
   */
 
  void generate_abstract_variables( Configuration * stvv = nullptr ) override;
@@ -206,7 +205,7 @@ public:
 /*-------------- Methods for reading the data of the MCFBlock --------------*/
 /*--------------------------------------------------------------------------*/
 /** @name Methods for reading the data of the MMCFBlock
-  *  @{ */
+ *  @{ */
 
  char get_filetype( void ) const { return( instance_type ); }
 
@@ -228,77 +227,100 @@ public:
  /// get the number of commodities
 
  Index get_NComm( void ) const { return( NComm ); }
- 
-/*--------------------------------------------------------------------------*/ 
-// given a commodity index k and an arc index ij, this function provides the value of the
-// associated variable x^k_ij.
-// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
-// x \in [0,1]. In this case the functions get_flow provide the values already rescaled wigth x^k_{ij} in [0,u_ij]
 
- double get_flow(Index k, Index i) const {
-   if( AR & FlowRelaxation ){
-     return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
-   }else{
-     if(k==NComm)
-        return( (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k));
-     else return( U[k][i]*((static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k)));   
-   }
- }
+/*--------------------------------------------------------------------------*/
+
+ bool useFlowRelaxation( void ) const { return( AR & FlowRelaxation ); }
+
+/*--------------------------------------------------------------------------*/
+ /// get the flow of a given arc for a given commodity 
+ /** Given a commodity index k and an arc index ij, this function provides
+  * the value of the associated variable x^k_ij. In the case of the knapsack
+  * relaxation, the variables of the block are rescaled in such a way that
+  * x \in [ 0 , 1 ]. In this case the functions get_flow provide the values
+  * already rescaled wigth x^k_{ij} in [ 0 , u_ij ]. */
+
+ double get_flow( Index k , Index i ) const {
+  if( ! ( AR & HasVar ) )
+   return( 0 );
  
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */ 
-// get all the values for the flow and design variables associated to a given commodity  
- void get_flow( std::vector< double > & fk , Index k ) const {
-   if( AR & FlowRelaxation ){
-     (static_cast<MCFBlock *>( v_Block[k] ))->get_x(fk,std::make_pair(0,NArcs));
-   }else{
-      if(k==NComm){
-         for(int i=0; i<NArcs;i++)
-             fk[i] = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-      }else{
-         for(int i=0; i<NArcs;i++){
-             double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-             fk[i] = x*U[k][i];
-          }
-      }
+  if( AR & FlowRelaxation )
+   return( static_cast< MCFBlock * >( v_Block[ k ] )->get_x( i ) );
+  else {
+   auto xk = static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_x( k );
+   return( k == NComm ? xk : U[ k ][ i ] * xk );
    }
- }
+  }
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/ 
+ /// get the value of all flow variables associated to a given commodity
+
+ void get_flow( std::vector< double > & fk , Index k ) const {
+  if( ! ( AR & HasVar ) ) {
+   std::fill( fk.begin(), fk.end() , 0 );
+   return;
+   }
+
+  if( AR & FlowRelaxation )
+   static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk ,
+						   Range( 0 , NArcs ) );
+  else
+   if( k == NComm )
+    for( Index i = 0 ; i < NArcs ; ++i )
+     fk[ i ] = static_cast< BinaryKnapsackBlock * >(
+						  v_Block[ i ] )->get_x( k );
+   else
+    for( Index i = 0 ; i < NArcs ; ++i )
+     fk[ i ] = U[ k ][ i ] * static_cast< BinaryKnapsackBlock * >(
+						  v_Block[ i ] )->get_x( k );
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-// given a commodity index k and an arc index ij, this function provides a pointer to the
-// associated variable x^k_ij.
-// In the case of the knapsack relaxation, the variables of the block are rescaled in such a way that
-// x \in [0,1]. Hence to obtain the value associated to the 'real' formulation we have to rescale the
-// values as x^k_ij*u_ij
+ /// get a pointer to the ColVariable corresponding to the flow k , i
 
- ColVariable * get_flow_variable(Index k, Index i){
-   if( AR & FlowRelaxation ){
-       return (static_cast<MCFBlock *>( v_Block[k] ))->i2p_x(i);
-   }else{
-       return (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_Var(k);
-   }   
- 
- }
+ ColVariable * get_flow_variable( Index k , Index i ) const {
+  if( ! ( AR & HasVar ) )
+   return( nullptr );
 
- unsigned char useFlowRelaxation(){
-    return AR&FlowRelaxation;
- }
- 
- 
- /*double get_x_tilde(Index k, Index i){
-   if( !(AR & FlowRelaxation) ){
-       double y = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(NComm);
-       double x = (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->get_x(k);
-       double value = C[k][i]*x + y*C[NComm][i]/UTot[i];
-       (static_cast<BinaryKnapsackBlock*>( v_Block[i] ))->set_x(k,value);
-       return value;
-   }else{
-      return((static_cast<MCFBlock *>( v_Block[k]))->get_x(i));
-   }  
- }
-*/
+  if( AR & FlowRelaxation )
+   return( static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( i ) );
+  else
+   return( static_cast< BinaryKnapsackBlock * >(
+				      v_Block[ i ] )->get_Var( k ) );   
+  }
 
+/*--------------------------------------------------------------------------*/
+ /// get the potential of flow balance constraint for node i for commodity k
 
-/*@}------------------------------------------------------------------------*/
+ double get_potential( Index k , Index i ) const {
+  if( ! ( AR & HasMutual ) )
+   return( 0 );
+
+  if( AR & FlowRelaxation )
+   return( static_cast< MCFBlock * >( v_Block[ k ] )->get_pi( i ) );
+  else
+   return( FCs[ k ][ i ].get_dual() );
+  }
+
+/*--------------------------------------------------------------------------*/
+ /// get the dual value of the linking constraint for arc i
+
+ double get_dual( Index i ) const {
+  if( ! ( AR & HasMutual ) )
+   return( 0 );
+
+  if( AR & FlowRelaxation )
+   return( MCs[ i ].get_dual() );
+  else
+   return( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_dual()
+	   );   
+  }
+
+/*--------------------------------------------------------------------------*/
+
+ unsigned char useFlowRelaxation( void ) { return( AR & FlowRelaxation ); }
+
+/* @} ----------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
 /*--------------------------------------------------------------------------*/
 
@@ -308,15 +330,15 @@ public:
 /*-------------------------- PROTECTED METHODS -----------------------------*/
 /*--------------------------------------------------------------------------*/
 /** @name Protected methods for inserting and extracting
-    @{ */
+ *  @{ */
 
  /// print the MMCFBlock on an ostream with the given verbosity
 
  virtual void print( std::ostream &output ) const override;
 
 /*--------------------------------------------------------------------------*/
- ///< load the MMCFBlock out of an istream
- /**< Load the MMCFBlock out of an istream. The format is: ...
+ /// load the MMCFBlock out of an istream
+ /** Load the MMCFBlock out of an istream. The format is: ...
   *
   */
 
@@ -336,12 +358,12 @@ public:
 
 /*--------------------------------------------------------------------------*/
  /** called at the end of any constructor, does some initializations that are
-  common to them all: it is "protected" for allowing derived classes that
-  use the "void" constructor to call it. */
+  * common to them all: it is "protected" for allowing derived classes that
+  * use the "void" constructor to call it. */
 
  void CmnIntlz( void );
 
-/*@}------------------------------------------------------------------------*/
+/* @} ----------------------------------------------------------------------*/
 /*--------------------------- PROTECTED FIELDS  ----------------------------*/
 /*--------------------------------------------------------------------------*/
 
@@ -352,68 +374,67 @@ public:
 
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
- 
-  static constexpr unsigned char FlowRelaxation = 4; 
-  ///< third bit of AR == 1
-  ///< true if we use the flow relaxation and false if we use the knapsack relaxation
-  ///< WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION IS IN [0,1]
-  ///< TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS NECESSARY TO RESCALE x^k_{ij}->u_{ij}x^k_{ij}
-  ///< the functions get_flow provides the value of the variable already rescaled
-  
-  
-  static constexpr unsigned char slc = 8;
-  ///< fourth bit of AR == 1
-  ///< true if we use the strong forcing constraints
 
+ static constexpr unsigned char FlowRelaxation = 4; 
+ /**< third bit of AR == 1
+  * true if we use the flow relaxation and false if we use the knapsack
+  * relaxation
+  * WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION
+  * IS IN [ 0 , 1 ] TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS
+  * NECESSARY TO RESCALE x^k_{ij} --> u_{ij} x^k_{ij}
+  * the functions get_flow provides the value of the variable already
+  * rescaled. */
 
- Index NXtrV;         ///< Number of "extra" variables
- Index NXtrC;         ///< Number of "extra" constraints
+ static constexpr unsigned char slc = 8;
+ ///< fourth bit of AR == 1: true if we use the strong forcing constraints
 
- Subset IdxBeg;       ///< Description of "extra" constraints: start
- Subset CoefIdx;      ///< Description of "extra" constraints: indices
- Vec_CNumber CoefVal; ///< Description of "extra" constraints: values
+ Index NXtrV;          ///< Number of "extra" variables
+ Index NXtrC;          ///< Number of "extra" constraints
 
- Index NNodes;        ///< Number of nodes
- Index NArcs;         ///< Number of arcs
- Index NComm;         ///< Number of commodities
- Index NCnst;         ///< Number of arcs with mutual capacity constraints
+ Subset IdxBeg;        ///< Description of "extra" constraints: start
+ Subset CoefIdx;       ///< Description of "extra" constraints: indices
+ Vec_CNumber CoefVal;  ///< Description of "extra" constraints: values
 
- CMultiVector C;      ///< Matrix of the arc costs
- FMultiVector U;      ///< Matrix of the arc upper capacities
- FMultiVector B;      ///< Matrix of the node deficits
- FMultiVector I;      ///< Matrix of the integrality constraints for the variables
+ Index NNodes;         ///< Number of nodes
+ Index NArcs;          ///< Number of arcs
+ Index NComm;          ///< Number of commodities
+ Index NCnst;          ///< Number of arcs with mutual capacity constraints
+
+ CMultiVector C;       ///< Matrix of the arc costs
+ FMultiVector U;       ///< Matrix of the arc upper capacities
+ FMultiVector B;       ///< Matrix of the node deficits
+ FMultiVector I;       ///< Matrix of the variables integrality constraints
 
  char filetypeBlock; 
 
- Vec_FNumber UTot;    ///< Vector of mutual capacities
+ Vec_FNumber UTot;     ///< Vector of mutual capacities
 
- Subset Startn;       ///< Topology of the graph: starting nodes
- Subset Endn;         ///< Topology of the graph: ending nodes
- Subset NInt;         ///< Number of integer-valued variables
- MultiSubset WIsInt;  ///< Which of the variables are integer-valued
+ Subset Startn;        ///< Topology of the graph: starting nodes
+ Subset Endn;          ///< Topology of the graph: ending nodes
+ Subset NInt;          ///< Number of integer-valued variables
+ MultiSubset WIsInt;   ///< Which of the variables are integer-valued
 
- Index StrtNme;       ///< The "name" of the first node
- Subset NamesK;       ///< The dual multipliers relative to commodity K
-                      ///< start with NamesK[ k ] and end with
-                      ///< NamesK[ k + 1 ]
- Subset Active;       ///< Set of the arcs for which a mutual capacity
-                      ///< constraint is defined
- MultiSubset ActiveK; ///< Like Active for individual capacities
- bool DrctdPrb;       ///< true if the problem is directed
+ Index StrtNme;        ///< The "name" of the first node
+ Subset NamesK;        /**< The dual multipliers relative to commodity K
+			* start with NamesK[ k ] and end with NamesK[ k + 1 ]
+			*/
+ Subset Active;        /**< Set of the arcs for which a mutual capacity
+			* constraint is defined */
+ MultiSubset ActiveK;  ///< Like Active for individual capacities
+ bool DrctdPrb;        ///< true if the problem is directed
  std::vector<MCFType> PT;  ///< type of flow subproblem
  // std::vector< MCFBlock * > v_mcf;
-   ///< the vector of (pointers to) the components of the sum function
+ // the vector of (pointers to) the components of the sum function
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
  Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
- 
 
- std::vector<FRowConstraint> MCs;                ///< the static mutual capacity constrs.
- boost::multi_array< FRowConstraint , 2 > FCs;   ///< the static flow constrs.
- boost::multi_array< FRowConstraint , 2 > SLCs;  ///< the static strong forcing constrs.
-
+ std::vector< FRowConstraint > MCs;  ///< the static mutual capacity constrs
+ boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
+ boost::multi_array< FRowConstraint , 2 > SLCs;
+ ///< the static strong forcing constrs
 
  char instance_type;
  std::string instance_name;
@@ -424,21 +445,19 @@ public:
 
  private:
 
-
 /*--------------------------------------------------------------------------*/
 /*-------------------------- PRIVATE METHODS -------------------------------*/
 /*--------------------------------------------------------------------------*/
-
 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- PRIVATE FIELDS ------------------------------*/
 /*--------------------------------------------------------------------------*/
 
- SMSpp_insert_in_factory_h;        // insert it in the Block factory
+ SMSpp_insert_in_factory_h;  // insert it in the Block factory
 
 /*--------------------------------------------------------------------------*/
 
-};  // end( class( MMCFBlock ) )
+ };  // end( class( MMCFBlock ) )
 
 /*--------------------------------------------------------------------------*/
 
@@ -453,5 +472,5 @@ public:
 #endif  /* MMCFBlock.h included */
 
 /*--------------------------------------------------------------------------*/
-/*--------------------- End File MMCFBlock.h ------------------------------*/
+/*---------------------- End File MMCFBlock.h ------------------------------*/
 /*--------------------------------------------------------------------------*/
