@@ -75,10 +75,6 @@ conduct, and the process for submitting merge requests to us.
 
 ## Authors
 
-- **Antonio Frangioni**  
-  Dipartimento di Informatica  
-  Università di Pisa
-
 - **Enrico Gorgone**  
   Dipartimento di Informatica  
   Università di Pisa
@@ -86,6 +82,12 @@ conduct, and the process for submitting merge requests to us.
 - **Francesco Demelas**  
   Laboratoire d'Informatique de Paris Nord  
   Universite' Sorbonne Paris Nord
+
+### Contributors
+
+- **Antonio Frangioni**  
+  Dipartimento di Informatica  
+  Università di Pisa
 
 ## License
 

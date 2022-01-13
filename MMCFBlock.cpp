@@ -27,8 +27,7 @@
 /*--------------------------------------------------------------------------*/
 
 #include "MMCFBlock.h"
-#include "Configuration.h"
-#include "SMSTypedefs.h"
+
 #include <math.h>
 
 /*--------------------------------------------------------------------------*/
@@ -41,7 +40,6 @@ using namespace std;
 /*--------------------------------------------------------------------------*/
 /*--------------------------------- TYPES ----------------------------------*/
 /*--------------------------------------------------------------------------*/
-
 
 using Index = Block::Index;
 
@@ -93,62 +91,47 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   }
 
  // TODO: check stvv and construct other formulations accordingly
- unsigned char fr=0;
+ unsigned char fr = 0;
  
- if(stvv){
-   auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
-   fr = c->value();
- }else{   
-   if( ( ! stvv ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
-     auto c = dynamic_cast<SimpleConfiguration<int> *>(
+ if( stvv ) {
+  auto c = dynamic_cast< SimpleConfiguration< int > * >( stvv );
+  fr = c->value();
+  }
+ else
+  if( ( ! stvv ) && f_BlockConfig &&
+      f_BlockConfig->f_static_variables_Configuration ){
+   auto c = dynamic_cast< SimpleConfiguration< int > * >(
                         f_BlockConfig->f_static_variables_Configuration );
-     fr=c->value();
-   }else{ 
-   fr=0; 
+   fr = c->value();
    }
- } 
-// auto c = dynamic_cast<SimpleConfiguration<int> *>( stvv );
-// if( ( ! c ) && f_BlockConfig && f_BlockConfig->f_static_variables_Configuration ){
-//   auto c = dynamic_cast<SimpleConfiguration<int> *>(
-//                     f_BlockConfig->f_static_variables_Configuration );
-// }
  
-// if(c)
-//   fr=c->value();
- 
- AR = (AR & (~4))|(4*fr);
- 
- 
+ AR = ( AR & (~4) ) | ( 4 * fr );
+  
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
-//if(FlowRelaxation == true){
-if( AR & FlowRelaxation){
-
- v_Block.resize( NComm );
+ if( AR & FlowRelaxation ) {
+  v_Block.resize( NComm );
  
- for( Index k = 0 ; k < NComm ; ++k ) {
-  /*!!
-  if( PT[ k ] == kSPT )
-   do something more clever
-   !!*/
-
-    auto MCFb = new MCFBlock( this );
-    MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
-    v_Block[ k ] = MCFb;
+  for( Index k = 0 ; k < NComm ; ++k ) {
+   //!! TODO: if( PT[ k ] == kSPT ) do something more clever
+   auto MCFb = new MCFBlock( this );
+   MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
+   v_Block[ k ] = MCFb;
+   }
   }
-}else{
- //construct vectors for the flow relaxation
- int items;
- std::vector< double > bound;
- std::vector< bool > Integrality;
- FMultiVector weights;
- FMultiVector costs;
- double Cmax=0;
+ else {
+  //construct vectors for the flow relaxation
+  int items;
+  std::vector< double > bound;
+  std::vector< bool > Integrality;
+  FMultiVector weights;
+  FMultiVector costs;
+  double Cmax = 0;
 
-if(NCnst != NArcs){
- weights.resize( NCnst );  // allocate weights for the knapsack sub-problem
- costs.resize( NCnst );  // allocate costs for the knapsack sub-problem
- bound.resize( NCnst );
+  if( NCnst != NArcs ) {
+   weights.resize( NCnst );  // allocate weights for the knapsack sub-problem
+   costs.resize( NCnst );  // allocate costs for the knapsack sub-problem
+   bound.resize( NCnst );
 
 for( Index j = 0 ; j < NCnst ; j++ ){ 
  if( filetypeBlock == 's' ){
@@ -342,44 +325,38 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
     MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
     }
    }
-  add_static_constraint( MCs , "Mut" );
 
- }else{
- 
- 
+  add_static_constraint( MCs , "Mut" );
+  }
+ else { 
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   std::vector< Subset > count( get_NComm() );
  
   // initialize the vectors of coefficients, and reset count[]
-  //std::vector< std::vector < LinearFunction::v_coeff_pair > > coeffs;
-  boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffs( boost::extents[get_NComm()][get_NNodes()] );
-  
-  //coeffs.resize( get_NNodes()*get_NComm() );
-  
+  boost::multi_array< LinearFunction::v_coeff_pair , 2 > coeffs(
+			    boost::extents[ get_NComm()] [ get_NNodes() ] );
+
   for( Index k = 0 ; k < get_NComm() ; ++k ) {
-   count[k].resize(get_NNodes());
-   if(Active.size()){
-     for( Index i = 0 ; i < NCnst ; ++i ) {
-       count[ k ][ Startn[ Active[i] ] - 1 ]++;
-       count[ k ][ Endn[ Active[i] ] - 1 ]++;
+   count[ k ].resize( get_NNodes() );
+   if( Active.size() )
+    for( Index i = 0 ; i < NCnst ; ++i ) {
+     count[ k ][ Startn[ Active[ i ] ] - 1 ]++;
+     count[ k ][ Endn[ Active[ i ] ] - 1 ]++;
      }
-   }else{   
-     for( Index i = 0 ; i < get_NArcs() ; ++i ) {
-       count[ k ][ Startn[ i ] - 1 ]++;
-       count[ k ][ Endn[ i ] - 1 ]++;
+   else
+    for( Index i = 0 ; i < get_NArcs() ; ++i ) {
+     count[ k ][ Startn[ i ] - 1 ]++;
+     count[ k ][ Endn[ i ] - 1 ]++;
      }
-   }    
-  }
+   }
   
- for( Index k = 0 ; k < get_NComm() ; ++k ) {
+ for( Index k = 0 ; k < get_NComm() ; ++k )
   for( Index i = 0 ; i < get_NNodes() ; ++i ) {
    coeffs[ k ][ i ].resize( count[ k ][ i ] );
    count[ k ][ i ] = 0;
    }
-  }
 
   // construct the vector of coefficients, static phase
-
 
  for( Index k = 0 ; k < get_NComm() ; ++k ) {
   if(NCnst != NArcs && Active.size()){
