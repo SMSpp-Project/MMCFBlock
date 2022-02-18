@@ -141,7 +141,7 @@ for(int j=0; j<NArcs; j++){
  for(int k=0;k<NComm; k++){
   if(B[k][j]>0)
    sumQ+=B[k][j];
-  if(C[ k ][ j ]<std::numeric_limits<double>::infinity()) 
+  if(C[ k ][ j ] < std::numeric_limits<double>::infinity()) 
    Cmax += C[ k ][ j ];
   if( U[ k ][ j ]>0) 
    Umax += U[ k ][ j ]; 
@@ -152,7 +152,7 @@ Umax = 10*Umax*NNodes*sumQ;
 Cmax = 10*Cmax*NNodes*sumQ*Umax;
 
 for( Index j = 0 ; j < NArcs ; j++ ){ 
- if( filetypeBlock == 's' ){
+ if( F.size()==NArcs ){
    weights[ j ].resize( NComm + 1 );
    costs[ j ].resize( NComm + 1 );
    }else{
@@ -166,13 +166,13 @@ for( Index j = 0 ; j < NArcs ; j++ ){
        costs[ j ][ k ] = Cmax; 
         }
  
-  if( filetypeBlock == 's' ){
-     costs[ j ][ NComm ] =  C[ NComm ][ j ];
+  if( F.size()==NArcs ){
+     costs[ j ][ NComm ] =  F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
   }
  
  items = NComm;
-  if(filetypeBlock == 's'){
+  if(F.size()==NArcs){
    items++;
    Integrality.resize( NComm + 1 );
    for( Index k = 0 ; k < NComm ; ++k )  {
@@ -208,7 +208,7 @@ for( Index j = 0 ; j < NArcs ; j++ ){
  
  
 for( Index j = 0 ; j < NArcs ; j++ ){ 
- if( filetypeBlock == 's' ){
+ if(F.size()==NArcs  ){
    weights[ j ].resize( NComm + 1 );
    costs[ j ].resize( NComm + 1 );
   }else{
@@ -226,15 +226,15 @@ for( Index j = 0 ; j < NArcs ; j++ ){
      }    
    }
    
-  if( filetypeBlock == 's' ){
-     costs[ j ][ NComm ] =  C[ NComm ][ j ];
+  if( F.size()==NArcs ){
+     costs[ j ][ NComm ] =  F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
   }
  }
  
  bound.resize(NArcs);
  items = NComm;
-  if(filetypeBlock == 's'){
+  if( F.size()==NArcs ){
    items++;
    Integrality.resize(NComm+1);
    for( Index j = 0 ; j < NComm ; ++j )  {
@@ -445,6 +445,7 @@ if(AR & slc){
  
 
  }  // end( MMCFBlock::generate_abstract_constraints() )
+ 
 
 /*-------------------------------------------------------------------------*/
 
@@ -638,7 +639,9 @@ void MMCFBlock::load( const char *const filename , char filetype )
  // (note that this part is again common) - - - - - - - - - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
- C.resize( NComm + 1 );  // allocate costs- - - - - - - - - - - - - - - -
+ C.resize( NComm );  // allocate costs- - - - - - - - - - - - - - - -
+ F.resize( NArcs );  // allocate costs- - - - - - - - - - - - - - - -
+// C.resize( NComm + 1 );  // allocate costs- - - - - - - - - - - - - - - -
 
  if( filetype == 'c' )
   for( Index i = 0 ; i < NComm ; i++ )
@@ -650,7 +653,9 @@ void MMCFBlock::load( const char *const filename , char filetype )
 
  // C[ NComm ] is empty
 
- U.resize( NComm + 2 );  // allocate capacities - - - - - - - - - - - - -
+ U.resize( NComm );  // allocate capacities - - - - - - - - - - - - -
+
+// U.resize( NComm + 2 );  // allocate capacities - - - - - - - - - - - - -
 
  if( filetype == 'c' )
   for( Index i = 0 ; i < NComm ; i++ )
@@ -661,7 +666,8 @@ void MMCFBlock::load( const char *const filename , char filetype )
 
  // U[ NComm ] = U[ NComm + 1 ] are empty
 
- B.resize( NComm + 2 );  // allocate deficits - - - - - - - - - - - - - -
+ B.resize( NComm);  // allocate deficits - - - - - - - - - - - - - -
+// B.resize( NComm + 2 );  // allocate deficits - - - - - - - - - - - - - -
 
  if( filetype == 'c' )
   for( Index i = 0 ; i < NComm ; i++ )
@@ -712,9 +718,10 @@ void MMCFBlock::load( const char *const filename , char filetype )
 
   // allocate the data structures for "extra" things- - - - - - - - - - - - -
 
-  C[ NComm ].resize( NXtrV = NArcs );
-  U[ NComm ].resize( NArcs , FNumber( 0 ) );     // "extra" variables
-  U[ NComm + 1 ].resize( NArcs , FNumber( 1 ) ); // are in the ...
+  F.resize( NArcs );
+//  C[ NComm ].resize( NXtrV = NArcs );
+//  U[ NComm ].resize( NArcs , FNumber( 0 ) );     // "extra" variables
+//  U[ NComm + 1 ].resize( NArcs , FNumber( 1 ) ); // are in the ...
                                                  // ... [0, 1] range
   NInt[ NComm ] = NArcs;                         // ... and integer
 
@@ -727,8 +734,9 @@ void MMCFBlock::load( const char *const filename , char filetype )
    if( Startn[ i ] == Endn[ i ] )
 	throw( std::invalid_argument( "self-loop" ) );
 
-   inFile >> C[ NComm ][ i ];
-
+//   inFile >> C[ NComm ][ i ];
+   inFile >> F[ i ];
+   
    FNumber f;
    inFile >> f;
 
@@ -1324,7 +1332,7 @@ void MMCFBlock::load( const char *const filename , char filetype )
   TempIdx.clear();
 
   }  // end if( FourFiles )
-
+ 
  delete[] Name;
 
  // common initializations- - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1387,7 +1395,6 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
 	srcs++;
 	maxUk -= Bk;
     }
-
   // now the contribution of arcs with potentially negative costs
 
   for( Index j = 0 ; j < NArcs ; j++ ) {
@@ -1429,6 +1436,7 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
 
    continue;
    }
+   
 
   // compute is an upper bound on the max quantity of flow (of any commodity)
   // on arc i: if capacities can increase indefinitely, the only bound is
@@ -1455,6 +1463,7 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
    Active[ NCnst++ ] = i;
 
   }  // end for( i )
+
 
  if( NCnst < NArcs )
   Active[ NCnst ] = Inf<Index>();
@@ -1613,19 +1622,129 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
 
 void MMCFBlock::serialize( netCDF::NcGroup & group ) const
 {
+ // call the method of Block- - - - - - - - - - - - - - - - - - - - - - - - -
 
- // TODO: the method has to be implemented!!
+ Block::serialize( group );
 
- }  // end( MMCFBlock::serialize )
+ // now the MCFBlock data - - - - - - - - - - - - - - - - - - - - - - - - - -
+ netCDF::NcDim nn = group.addDim( "NNodes" , get_NNodes() );
+ netCDF::NcDim na = group.addDim( "NArcs" , get_NArcs() );
+ netCDF::NcDim nc = group.addDim( "NComm" , get_NComm() );
+ netCDF::NcDim ncnst = group.addDim( "NCnst" , NCnst);
+ 
+ ( group.addVar( "SN" , netCDF::NcUint64() , na ) ).putVar( Startn.data() );
+
+ ( group.addVar( "EN" , netCDF::NcUint64() , na ) ).putVar( Endn.data() );
+
+ ( group.addVar( "Utot" , netCDF::NcDouble() , na ) ).putVar( UTot.data() );
+ 
+ if( F.size()==NArcs)
+	 ( group.addVar( "F" , netCDF::NcDouble() , na ) ).putVar( F.data() );
+  
+ ::serialize( group, "U", netCDF::NcDouble(), U, {nc,na});
+              
+ ::serialize( group, "B", netCDF::NcDouble(), B, {nc,nn});
+              
+ ::serialize( group, "C", netCDF::NcDouble(), C, {nc,na});
+
+ // finally call the method of the base class
+ 
+
+ }  // end( MCFBlock::serialize )
+
+ // end( MMCFBlock::serialize )
 
 /*--------------------------------------------------------------------------*/
 
 void MMCFBlock::deserialize( netCDF::NcGroup & group )
 {
+ // erase previous instance, if any- - - - - - - - - - - - - - - - - - - - - -
 
- // TODO: the method has to be implemented!!
+ if( NNodes || NComm || get_NArcs() )
+   MMCFBlock();
+		   
+ // read problem data- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
- }  // end( MMCFBlock::deserialize )  - - - - - - - - - - - - - - - - - - - -
+
+ netCDF::NcDim nn = group.getDim( "NNodes" );
+ if( nn.isNull() )
+  throw( std::logic_error( "NNodes dimension is required" ) );
+ NNodes = nn.getSize();
+
+ netCDF::NcDim na = group.getDim( "NArcs" );
+ if( na.isNull() )
+  throw( std::logic_error( "NArcs dimension is required" ) );
+ NArcs = na.getSize();
+ 
+ netCDF::NcDim nc = group.getDim( "NComm" );
+ if( nc.isNull() )
+  throw( std::logic_error( "NComm dimension is required" ) );
+ NComm = nc.getSize();
+ 
+ Index NCnst = NArcs;
+ netCDF::NcDim ncnst = group.getDim( "NCnst" );
+ if( nc.isNull() )
+  throw( std::logic_error( "NCnst dimension is required" ) );
+ NCnst = ncnst.getSize();
+ 
+ netCDF::NcVar sn = group.getVar( "SN" );
+ if( sn.isNull() )
+  throw( std::logic_error( "Starting Nodes not found" ) );
+
+ Startn.resize( NArcs );
+ sn.getVar( Startn.data() );
+
+ netCDF::NcVar en = group.getVar( "EN" );
+ if( en.isNull() )
+  throw( std::logic_error( "Ending Nodes not found" ) );
+
+ Endn.resize( NArcs );
+ en.getVar( Endn.data() );
+ 
+ netCDF::NcVar ut = group.getVar( "Utot" );
+ if( ut.isNull() )
+  throw( std::logic_error( "Total capacities not found" ) );
+
+ UTot.resize( NArcs );
+ ut.getVar( UTot.data() );
+ 
+ 
+ netCDF::NcVar fc = group.getVar( "F" );
+ if( !fc.isNull() ){
+	 F.resize( NArcs );
+ 	fc.getVar( F.data() );
+  }
+  
+ U.resize( NComm );
+ for(int i =0; i< NComm; i++){
+   U[i].resize(NArcs); 
+ }
+ 
+ B.resize( NComm );
+ for(int i =0; i< NComm; i++){
+   B[i].resize(NNodes); 
+ }
+ 
+ C.resize( NComm );
+ for(int i =0; i< NComm; i++){
+   C[i].resize(NArcs); 
+ }
+ 
+ ::deserialize( group , "U" , U );
+ ::deserialize( group , "B" , B );
+ ::deserialize( group , "C" , C ); 
+ 
+ // allocate variables - - - - - - - - - - - - - - - - - - - - - - - - -
+ 
+// PreProcess();
+// generate_abstract_variables();
+
+ // call the method of Block- - - - - - - - - - - - - - - - - - - - - - - - -
+ // inside this the NBModification, the "nuclear option",  is issued
+
+ Block::deserialize( group );
+
+ } // end( MMCFBlock::deserialize )  - - - - - - - - - - - - - - - - - - - -
 
 /*--------------------------------------------------------------------------*/
 
