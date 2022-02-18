@@ -317,6 +317,44 @@ class MMCFBlock : public Block
   }
 
 /*--------------------------------------------------------------------------*/
+ void load_nc4( std::string & filename ) {
+  netCDF::NcFile f( filename, netCDF::NcFile::read );
+
+  netCDF::NcGroupAtt gtype = f.getAtt( "SMS++_file_type" );
+
+  int type = 0;
+  gtype.getValues( &type );
+
+  netCDF::NcGroup bg = f.getGroup( "Block_0" );
+
+  deserialize( bg );
+  
+  CmnIntlz();
+ }
+/*--------------------------------------------------------------------------*/
+
+void chg_fixed_costs( int seed, double lambda )
+{
+ double Cmean[get_NArcs()];
+ 
+ for(  Index i = 0; i < get_NArcs() ; ++i ){ 
+  Cmean[ i ] = 0;
+  for(  Index k = 0; k < get_NComm() ; ++k ){ 
+   if( C[k][i] < std::numeric_limits<double>::infinity())
+    Cmean[ i ] += C[k][i]*U[k][i]/get_NComm();
+  }
+ }
+ 
+ if( F.size() < get_NArcs())
+  F.resize(get_NArcs());
+  
+  
+ for(  Index i = 0; i < get_NArcs() ; ++i ){ 
+  F[i] = lambda*Cmean[i];
+ }
+ 
+}
+
 
  unsigned char useFlowRelaxation( void ) { return( AR & FlowRelaxation ); }
 
@@ -384,6 +422,9 @@ class MMCFBlock : public Block
   * NECESSARY TO RESCALE x^k_{ij} --> u_{ij} x^k_{ij}
   * the functions get_flow provides the value of the variable already
   * rescaled. */
+  
+  
+ static constexpr unsigned char addFixedCosts = 8; 
 
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
@@ -408,6 +449,8 @@ class MMCFBlock : public Block
  char filetypeBlock; 
 
  Vec_FNumber UTot;     ///< Vector of mutual capacities
+ 
+ Vec_CNumber F;        ///< Vector of fixed costs
 
  Subset Startn;        ///< Topology of the graph: starting nodes
  Subset Endn;          ///< Topology of the graph: ending nodes
@@ -474,3 +517,4 @@ class MMCFBlock : public Block
 /*--------------------------------------------------------------------------*/
 /*---------------------- End File MMCFBlock.h ------------------------------*/
 /*--------------------------------------------------------------------------*/
+
