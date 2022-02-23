@@ -262,7 +262,7 @@ class MMCFBlock : public Block
    }
 
   if( AR & FlowRelaxation )
-   static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk ,
+   static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
    if( k == NComm )
