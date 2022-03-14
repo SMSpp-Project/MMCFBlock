@@ -109,7 +109,7 @@ class MMCFBlock : public Block
 /*--------------------------------------------------------------------------*/
  /// destructor of MMCFBlock
 
- virtual ~MMCFBlock();
+ virtual ~MMCFBlock() { guts_of_destructor(); }
 
 /*@} -----------------------------------------------------------------------*/
 /*-------------------------- OTHER INITIALIZATIONS -------------------------*/
@@ -117,11 +117,59 @@ class MMCFBlock : public Block
 /** @name Other initializations
  *  @{ */
 
- /// loads the instance from the given file of the given type
+ /// loads the instance from the given file in the given format
+ /** Loads a MMCF instance using filename as the "base filename". This method
+  * supports several formats depending on \p frmt, that is case-insensitive.
+  * In particular, for two single-file formats
+  *
+  * - frmt == 0 (default) or frmt == 'c': PPRN format
+  *
+  * - frmt == 's': Canad format
+  *
+  * it behaves just as the Block method (just open an ifstream and
+  * dispatch it load( std::istream & ). However, it also supports 5
+  * multi-file formats:
+  *
+  * - 'm': Mnetgen format
+  * - 'p': Jones-Lustig PSP (product-specific problem) format
+  * - 'o': Jones-Lustig OSP (origin-specific problem) format
+  * - 'd': Jones-Lustig OSP (origin-destination problem) format
+  * - 'u': same as 'd' but supply information is looked at in file
+  *        input + ".od" rather than input + ".sup" as in all the
+  *        other cases
+  *
+  * where input (prefixed as set by set_filename_prefix(), if any) is
+  * completed by the appropriate suffixes ".nod", ".arc", ".mut", ".sup"
+  * or ".od" to load different parts of the description of the MMCF
+  * instance.
+  *
+  * TODO: properly document all the formats.
+  *
+  * If there is any Solver attached to this MMCFBlock then a NBModification
+  * (the "nuclear option") is issued. */
 
- void load( const char *const filename , char filetype );
+ void load( const std::string & input , char frmt = 0 ) override;
 
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*--------------------------------------------------------------------------*/
+ /// load the MMCFBlock out of an istream
+ /** Load the MMCFBlock out of an istream. Handles the two single-file
+  * formats, i.e., Canad and PPRN.
+  *
+  * TODO: properly document the formats.
+  *
+  * If there is any Solver attached to this MMCFBlock then a NBModification
+  * (the "nuclear option") is issued. */
+
+ void load( std::istream & input , char frmt = 0 ) override;
+
+/*--------------------------------------------------------------------------*/
+ /// extends Block::deserialize( netCDF::NcGroup )
+ /** Extends Block::deserialize( netCDF::NcGroup ) to the specific format of
+  * a MMCFBlock.  */
+
+ void deserialize( const netCDF::NcGroup & group ) override;
+
+/*--------------------------------------------------------------------------*/
  /// simplifies the problem
  /** Performs various pre-processing of the data, trying to make the instance
   * more easily solvable. The parameters to be given are the following:
@@ -201,19 +249,37 @@ class MMCFBlock : public Block
  void generate_objective( Configuration * objc = nullptr ) override;
  !!*/
 
-/**@} ----------------------------------------------------------------------*/
+/** @} ---------------------------------------------------------------------*/
+/*--------------- METHODS FOR PRINTING & SAVING THE MMCFBlock --------------*/
+/*--------------------------------------------------------------------------*/
+/** @name Methods for printing & saving the MMCFBlock
+ *  @{ */
+
+ /// print the MMCFBlock on an ostream with the given verbosity
+ /** Print the MMCFBlock on an ostream. So far vlvl is ignored and only very
+  * basic information is printed.
+  *
+  * TODO: implement some verbosity level that produce output files in at
+  *       least some of the single-file formats supported by load(); note
+  *       that for multi-file formats, print( std::string & ) must be used.
+  */
+
+ void print( std::ostream & output , char vlvl = 0 ) const override;
+
+/*--------------------------------------------------------------------------*/
+/// extends Block::serialize( netCDF::NcGroup )
+/** Extends Block::serialize( netCDF::NcGroup ) to the specific format of a
+ * MMCFBlock. See MMCFBlock::deserialize(netCDF::NcGroup) for details of the
+ * format of the created netCDF group. */
+
+ void serialize( netCDF::NcGroup & file ) const override;
+
+/** @} ---------------------------------------------------------------------*/
 /*-------------- Methods for reading the data of the MCFBlock --------------*/
 /*--------------------------------------------------------------------------*/
 /** @name Methods for reading the data of the MMCFBlock
  *  @{ */
 
- char get_filetype( void ) const { return( instance_type ); }
-
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
- std::string get_filename( void ) const { return( instance_name ); }
-
-/*--------------------------------------------------------------------------*/
  /// get the number of nodes
 
  Index get_NNodes( void ) const { return( NNodes ); }
@@ -317,6 +383,7 @@ class MMCFBlock : public Block
   }
 
 /*--------------------------------------------------------------------------*/
+
  void load_nc4( std::string & filename ) {
   netCDF::NcFile f( filename, netCDF::NcFile::read );
 
@@ -330,35 +397,33 @@ class MMCFBlock : public Block
   deserialize( bg );
   
   CmnIntlz();
- }
+  }
+
 /*--------------------------------------------------------------------------*/
 
-void chg_fixed_costs( int seed, double lambda )
+void chg_fixed_costs( int seed , double lambda )
 {
  double Cmean[get_NArcs()];
  
- for(  Index i = 0; i < get_NArcs() ; ++i ){ 
+ for( Index i = 0 ; i < get_NArcs() ; ++i ) {
   Cmean[ i ] = 0;
-  for(  Index k = 0; k < get_NComm() ; ++k ){ 
-   if( C[k][i] < std::numeric_limits<double>::infinity())
-    Cmean[ i ] += C[k][i]*U[k][i]/get_NComm();
+  for( Index k = 0 ; k < get_NComm() ; ++k )
+   if( C[ k ][ i ] < Inf< double >() )
+    Cmean[ i ] += C[ k ][ i ] * U[ k ][ i ] / get_NComm();
   }
- }
  
- if( F.size() < get_NArcs())
-  F.resize(get_NArcs());
-  
-  
- for(  Index i = 0; i < get_NArcs() ; ++i ){ 
-  F[i] = lambda*Cmean[i];
- }
- 
-}
+ if( F.size() < get_NArcs() )
+  F.resize( get_NArcs() );
 
+ for( Index i = 0 ; i < get_NArcs() ; ++i )
+  F[ i ] = lambda * Cmean[ i ];
+ }
+
+/*--------------------------------------------------------------------------*/
 
  unsigned char useFlowRelaxation( void ) { return( AR & FlowRelaxation ); }
 
-/* @} ----------------------------------------------------------------------*/
+/** @} ---------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
 /*--------------------------------------------------------------------------*/
 
@@ -370,29 +435,6 @@ void chg_fixed_costs( int seed, double lambda )
 /** @name Protected methods for inserting and extracting
  *  @{ */
 
- /// print the MMCFBlock on an ostream with the given verbosity
-
- virtual void print( std::ostream &output ) const override;
-
-/*--------------------------------------------------------------------------*/
- /// load the MMCFBlock out of an istream
- /** Load the MMCFBlock out of an istream. The format is: ...
-  *
-  */
-
- void load( std::istream &input ) override { // TODO: implement
-  }
-
-/*--------------------------------------------------------------------------*/
-
- void serialize( netCDF::NcGroup & file ) const override;
-
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
- /// extends Block::deserialize( netCDF::NcGroup )
- /** Extends Block::deserialize( netCDF::NcGroup ) to the specific format of
-  * a MMCFBlock.  */
-
- void deserialize( netCDF::NcGroup & group );
 
 /*--------------------------------------------------------------------------*/
  /** called at the end of any constructor, does some initializations that are
@@ -422,8 +464,7 @@ void chg_fixed_costs( int seed, double lambda )
   * NECESSARY TO RESCALE x^k_{ij} --> u_{ij} x^k_{ij}
   * the functions get_flow provides the value of the variable already
   * rescaled. */
-  
-  
+
  static constexpr unsigned char addFixedCosts = 8; 
 
  static constexpr unsigned char slc = 8;
@@ -446,16 +487,12 @@ void chg_fixed_costs( int seed, double lambda )
  FMultiVector B;       ///< Matrix of the node deficits
  FMultiVector I;       ///< Matrix of the variables integrality constraints
 
- char filetypeBlock; 
-
  Vec_FNumber UTot;     ///< Vector of mutual capacities
  
  Vec_CNumber F;        ///< Vector of fixed costs
 
  Subset Startn;        ///< Topology of the graph: starting nodes
  Subset Endn;          ///< Topology of the graph: ending nodes
- Subset NInt;          ///< Number of integer-valued variables
- MultiSubset WIsInt;   ///< Which of the variables are integer-valued
 
  Index StrtNme;        ///< The "name" of the first node
  Subset NamesK;        /**< The dual multipliers relative to commodity K
@@ -466,21 +503,15 @@ void chg_fixed_costs( int seed, double lambda )
  MultiSubset ActiveK;  ///< Like Active for individual capacities
  bool DrctdPrb;        ///< true if the problem is directed
  std::vector<MCFType> PT;  ///< type of flow subproblem
- // std::vector< MCFBlock * > v_mcf;
- // the vector of (pointers to) the components of the sum function
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
- Vec_Bool DIsCpy;     ///< true for each row of D[] that is a copy of another
 
  std::vector< FRowConstraint > MCs;  ///< the static mutual capacity constrs
  boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
  boost::multi_array< FRowConstraint , 2 > SLCs;
  ///< the static strong forcing constrs
-
- char instance_type;
- std::string instance_name;
 
 /*--------------------------------------------------------------------------*/
 /*--------------------- PRIVATE PART OF THE CLASS --------------------------*/
@@ -492,6 +523,8 @@ void chg_fixed_costs( int seed, double lambda )
 /*-------------------------- PRIVATE METHODS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+ void guts_of_destructor( void );
+ 
 /*--------------------------------------------------------------------------*/
 /*---------------------------- PRIVATE FIELDS ------------------------------*/
 /*--------------------------------------------------------------------------*/
