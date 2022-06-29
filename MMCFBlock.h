@@ -36,6 +36,7 @@
 #include "ColVariable.h"
 #include "FRowConstraint.h"
 #include "Configuration.h"
+#include "Objective.h"
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------- NAMESPACE ------------------------------------*/
@@ -299,6 +300,15 @@ class MMCFBlock : public Block
  bool useFlowRelaxation( void ) const { return( AR & FlowRelaxation ); }
 
 /*--------------------------------------------------------------------------*/
+ /// getting the current sense of the Objective, which is minimization
+
+ int get_objective_sense( void ) const override final {
+  return( Objective::eMin );
+  }
+  
+  /*--------------------------------------------------------------------------*/
+
+
  /// get the flow of a given arc for a given commodity 
  /** Given a commodity index k and an arc index ij, this function provides
   * the value of the associated variable x^k_ij. In the case of the knapsack
@@ -469,7 +479,7 @@ void chg_fixed_costs( int seed , double lambda )
 
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
-
+ 
  Index NXtrV;          ///< Number of "extra" variables
  Index NXtrC;          ///< Number of "extra" constraints
 
@@ -512,6 +522,8 @@ void chg_fixed_costs( int seed , double lambda )
  boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
  boost::multi_array< FRowConstraint , 2 > SLCs;
  ///< the static strong forcing constrs
+ 
+ int f_sense = Objective::eMin;
 
 /*--------------------------------------------------------------------------*/
 /*--------------------- PRIVATE PART OF THE CLASS --------------------------*/

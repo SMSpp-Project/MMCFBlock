@@ -1079,7 +1079,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     auto BKb = new BinaryKnapsackBlock( this );
     BKb->load( items , bound[ j ] , weights[ j ] , costs[ j ] ,
 	       Integrality ); 
-    BKb->set_objective_sense( false );
+    BKb->set_objective_sense( Objective::eMin );
     v_Block[ j ] = BKb;
     }
    }
@@ -1139,7 +1139,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     auto BKb = new BinaryKnapsackBlock( this );
     BKb->load( items , bound[ j ] , weights[ j ] , costs[ j ] ,
 	       Integrality ); 
-    BKb->set_objective_sense( false );
+    BKb->set_objective_sense( Objective::eMin );
     v_Block[ j ] = BKb;
     }
    }
