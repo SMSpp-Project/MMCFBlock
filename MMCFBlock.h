@@ -464,13 +464,22 @@ void chg_fixed_costs( int seed , double lambda )
 
  static constexpr unsigned char KnapsackRelaxation = 4; 
  /**< third bit of AR == 1
-  * true if we use the flow relaxation and false if we use the knapsack
-  * relaxation
+   * - [0]: the standard knapsack formulation in which get_NArcs()
+  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
+  *   and the flow constraints are handled in the father MMCFBlock;
+  *
+  * - [1]: the standard flow formulation in which get_NComm() MCFBlock
+  *   sub-Block are constructed, one for each commodity, and the
+  *   linking constraints are handled in the father MMCFBlock;
+  *
   * WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION
   * IS IN [ 0 , 1 ] TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS
   * NECESSARY TO RESCALE x^k_{ij} --> u_{ij} x^k_{ij}
   * the functions get_flow provides the value of the variable already
-  * rescaled. */
+  * rescaled. 
+  *
+  * by default is considered the Flow relaxation
+  */
 
  static constexpr unsigned char addFixedCosts = 8; 
 
