@@ -7,13 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [0.3.0] - 29-06-2022
+
+### Added
+
+- serialize and deserialize functions
+
+- get_flow and get_potential functions
+
 ## [0.2.0] - 2021-12-07
 
 Significant improvements:
 
 - added Lagrangian Knapsack Relaxation
 
-- added the possibility of String Forcing Constraint in the Flow Relaxation
+- added the possibility of Strong Forcing Constraint in the Knapsack Relaxation
 
 - added functions to get flow
 

@@ -303,7 +303,7 @@ class MMCFBlock : public Block
  /// getting the current sense of the Objective, which is minimization
 
  int get_objective_sense( void ) const override final {
-  return( Objective::eMin );
+  return( f_sense );
   }
   
   /*--------------------------------------------------------------------------*/

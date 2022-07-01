@@ -1019,10 +1019,15 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
    int i = 0;
    int sumQ = 0;
    double CMax = 0;
-   for( int j = 0 ; j < NArcs ; j++ )
+   
+   for( int j = 0 ; j < NNodes ; j++ )
     for( int k = 0 ; k < NComm ; k++ ) {
      if( B[ k ][ j ] > 0 )
       sumQ += B[ k ][ j ];
+    }  
+   
+   for( int j = 0 ; j < NArcs ; j++ )
+    for( int k = 0 ; k < NComm ; k++ ) {
      if( C[ k ][ j ] < Inf< double >() ) 
       Cmax += C[ k ][ j ];
      if( U[ k ][ j ] > 0 ) 
@@ -1079,7 +1084,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     auto BKb = new BinaryKnapsackBlock( this );
     BKb->load( items , bound[ j ] , weights[ j ] , costs[ j ] ,
 	       Integrality ); 
-    BKb->set_objective_sense( Objective::eMin );
+    BKb->set_objective_sense( false );
     v_Block[ j ] = BKb;
     }
    }
@@ -1139,7 +1144,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     auto BKb = new BinaryKnapsackBlock( this );
     BKb->load( items , bound[ j ] , weights[ j ] , costs[ j ] ,
 	       Integrality ); 
-    BKb->set_objective_sense( Objective::eMin );
+    BKb->set_objective_sense( false );
     v_Block[ j ] = BKb;
     }
    }
