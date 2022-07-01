@@ -297,7 +297,7 @@ class MMCFBlock : public Block
 
 /*--------------------------------------------------------------------------*/
 
- bool useFlowRelaxation( void ) const { return( AR & FlowRelaxation ); }
+ bool useFlowRelaxation( void ) const { return(!(AR & KnapsackRelaxation) ); }
 
 /*--------------------------------------------------------------------------*/
  /// getting the current sense of the Objective, which is minimization
@@ -320,7 +320,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( 0 );
  
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_x( i ) );
   else {
    auto xk = static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_x( k );
@@ -337,7 +337,7 @@ class MMCFBlock : public Block
    return;
    }
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
@@ -358,7 +358,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( nullptr );
 
-  if( AR & FlowRelaxation )
+  if(!(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( i ) );
   else
    return( static_cast< BinaryKnapsackBlock * >(
@@ -372,7 +372,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_pi( i ) );
   else
    return( FCs[ k ][ i ].get_dual() );
@@ -385,7 +385,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( MCs[ i ].get_dual() );
   else
    return( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_dual()
@@ -429,9 +429,6 @@ void chg_fixed_costs( int seed , double lambda )
   F[ i ] = lambda * Cmean[ i ];
  }
 
-/*--------------------------------------------------------------------------*/
-
- unsigned char useFlowRelaxation( void ) { return( AR & FlowRelaxation ); }
 
 /** @} ---------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
@@ -465,7 +462,7 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
- static constexpr unsigned char FlowRelaxation = 4; 
+ static constexpr unsigned char KnapsackRelaxation = 4; 
  /**< third bit of AR == 1
   * true if we use the flow relaxation and false if we use the knapsack
   * relaxation

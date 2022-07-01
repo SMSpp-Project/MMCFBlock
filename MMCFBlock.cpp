@@ -991,7 +991,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
- if( AR & FlowRelaxation ) {
+ if( !(AR & KnapsackRelaxation) ) {
   v_Block.resize( NComm );
  
   for( Index k = 0 ; k < NComm ; ++k ) {
@@ -1180,7 +1180,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
- if( AR & FlowRelaxation ) {
+ if( !(AR & KnapsackRelaxation) ) {
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   Subset count( get_NArcs() );
   
