@@ -991,7 +991,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
- if( AR & FlowRelaxation ) {
+ if( !(AR & KnapsackRelaxation) ) {
   v_Block.resize( NComm );
  
   for( Index k = 0 ; k < NComm ; ++k ) {
@@ -1010,30 +1010,37 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   FMultiVector costs;
   double Cmax = 0;
   double Umax = 0;
+  double sumF = 0;
+  int sumQ = 0;
 
+   int i = 0;
+   
+   for( int j = 0 ; j < NNodes ; j++ )
+    for( int k = 0 ; k < NComm ; k++ ) {
+     if( B[ k ][ j ] > 0 )
+      sumQ += B[ k ][ j ];
+    }  
+   
+   for( int j = 0 ; j < NArcs ; j++ )
+    for( int k = 0 ; k < NComm ; k++ ) {
+     if( C[ k ][ j ] < Inf< double >() ) 
+      Cmax += C[ k ][ j ];
+     if( U[ k ][ j ] > 0 ) 
+      Umax += U[ k ][ j ]; 
+     sumF += F[ j ]; 
+     }
+
+   Umax = 10 * Umax * NNodes * sumQ;
+   Cmax = 10 * Cmax * NNodes * sumQ * Umax;
+   
   if( ( NCnst != NArcs ) && Active.size() ) {
    weights.resize( NArcs );  // allocate weights for the knapsack sub-problem
    costs.resize( NArcs );  // allocate costs for the knapsack sub-problem
    bound.resize( NArcs );
 
-   int i = 0;
-   int sumQ = 0;
-   double CMax = 0;
-   for( int j = 0 ; j < NArcs ; j++ )
-    for( int k = 0 ; k < NComm ; k++ ) {
-     if( B[ k ][ j ] > 0 )
-      sumQ += B[ k ][ j ];
-     if( C[ k ][ j ] < Inf< double >() ) 
-      Cmax += C[ k ][ j ];
-     if( U[ k ][ j ] > 0 ) 
-      Umax += U[ k ][ j ]; 
-     }
-
-   Umax = 10 * Umax * NNodes * sumQ;
-   Cmax = 10 * Cmax * NNodes * sumQ * Umax;
 
    for( Index j = 0 ; j < NArcs ; j++ ) {
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0 ) {
      weights[ j ].resize( NComm + 1 );
      costs[ j ].resize( NComm + 1 );
      }
@@ -1049,13 +1056,13 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       costs[ j ][ k ] = Cmax; 
      }
 
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0) {
      costs[ j ][ NComm ] =  F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
      }
 
     items = NComm;
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0) {
      items++;
      Integrality.resize( NComm + 1 );
      for( Index k = 0 ; k < NComm ; ++k )
@@ -1088,7 +1095,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
    costs.resize( NArcs  );  // allocate costs for the knapsack sub-problem
  
    for( Index j = 0 ; j < NArcs ; j++ ) {
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs  && sumF>0) {
      weights[ j ].resize( NComm + 1 );
      costs[ j ].resize( NComm + 1 );
      }
@@ -1109,7 +1116,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       }
      }
 
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0 ) {
      costs[ j ][ NComm ] = F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
      }
@@ -1117,7 +1124,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
 
    bound.resize( NArcs );
    items = NComm;
-   if( F.size() == NArcs ) {
+   if( F.size() == NArcs && sumF>0 ) {
     items++;
     Integrality.resize( NComm + 1 );
     for( Index j = 0 ; j < NComm ; ++j )
@@ -1175,7 +1182,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
- if( AR & FlowRelaxation ) {
+ if( !(AR & KnapsackRelaxation) ) {
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   Subset count( get_NArcs() );
   

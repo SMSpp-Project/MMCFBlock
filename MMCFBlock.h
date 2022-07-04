@@ -36,6 +36,7 @@
 #include "ColVariable.h"
 #include "FRowConstraint.h"
 #include "Configuration.h"
+#include "Objective.h"
 
 /*--------------------------------------------------------------------------*/
 /*--------------------------- NAMESPACE ------------------------------------*/
@@ -226,15 +227,17 @@ class MMCFBlock : public Block
   * SimpleConfiguration< int >, then the f_value (an int) dictates which
   * MMCF formulation as follows:
   *
-  * - [0]: the standard knapsack formulation in which get_NArcs()
+  * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
   *   and the flow constraints are handled in the father MMCFBlock;
   *
-  * - [1]: the standard flow formulation in which get_NComm() MCFBlock
+  * - [0]: the standard flow formulation in which get_NComm() MCFBlock
   *   sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *
   * - [other ones possibly to follow].
+  * 
+  *  by default is considered the Flow relaxation
   */
 
  void generate_abstract_variables( Configuration * stvv = nullptr ) override;
@@ -296,9 +299,18 @@ class MMCFBlock : public Block
 
 /*--------------------------------------------------------------------------*/
 
- bool useFlowRelaxation( void ) const { return( AR & FlowRelaxation ); }
+ bool useFlowRelaxation( void ) const { return(!(AR & KnapsackRelaxation) ); }
 
 /*--------------------------------------------------------------------------*/
+ /// getting the current sense of the Objective, which is minimization
+
+ int get_objective_sense( void ) const override final {
+  return( f_sense );
+  }
+  
+  /*--------------------------------------------------------------------------*/
+
+
  /// get the flow of a given arc for a given commodity 
  /** Given a commodity index k and an arc index ij, this function provides
   * the value of the associated variable x^k_ij. In the case of the knapsack
@@ -310,7 +322,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( 0 );
  
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_x( i ) );
   else {
    auto xk = static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_x( k );
@@ -327,7 +339,7 @@ class MMCFBlock : public Block
    return;
    }
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
@@ -348,7 +360,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( nullptr );
 
-  if( AR & FlowRelaxation )
+  if(!(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( i ) );
   else
    return( static_cast< BinaryKnapsackBlock * >(
@@ -362,7 +374,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_pi( i ) );
   else
    return( FCs[ k ][ i ].get_dual() );
@@ -375,7 +387,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( AR & FlowRelaxation )
+  if( !(AR & KnapsackRelaxation) )
    return( MCs[ i ].get_dual() );
   else
    return( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_dual()
@@ -419,9 +431,6 @@ void chg_fixed_costs( int seed , double lambda )
   F[ i ] = lambda * Cmean[ i ];
  }
 
-/*--------------------------------------------------------------------------*/
-
- unsigned char useFlowRelaxation( void ) { return( AR & FlowRelaxation ); }
 
 /** @} ---------------------------------------------------------------------*/
 /*-------------------- PROTECTED PART OF THE CLASS -------------------------*/
@@ -455,21 +464,30 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
- static constexpr unsigned char FlowRelaxation = 4; 
+ static constexpr unsigned char KnapsackRelaxation = 4; 
  /**< third bit of AR == 1
-  * true if we use the flow relaxation and false if we use the knapsack
-  * relaxation
+   * - [1]: the standard knapsack formulation in which get_NArcs()
+  *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
+  *   and the flow constraints are handled in the father MMCFBlock;
+  *
+  * - [0]: the standard flow formulation in which get_NComm() MCFBlock
+  *   sub-Block are constructed, one for each commodity, and the
+  *   linking constraints are handled in the father MMCFBlock;
+  *
   * WHEN THE KNAPSACK RELAXATION IS CONSIDERED, THE PROVIDED FLOW SOLUTION
   * IS IN [ 0 , 1 ] TO OBTAIN THE SOLUTION OF THE INITIAL PROBLEM IS
   * NECESSARY TO RESCALE x^k_{ij} --> u_{ij} x^k_{ij}
   * the functions get_flow provides the value of the variable already
-  * rescaled. */
+  * rescaled. 
+  *
+  * by default is considered the Flow relaxation
+  */
 
  static constexpr unsigned char addFixedCosts = 8; 
 
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
-
+ 
  Index NXtrV;          ///< Number of "extra" variables
  Index NXtrC;          ///< Number of "extra" constraints
 
@@ -512,6 +530,8 @@ void chg_fixed_costs( int seed , double lambda )
  boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
  boost::multi_array< FRowConstraint , 2 > SLCs;
  ///< the static strong forcing constrs
+ 
+ int f_sense = Objective::eMin;
 
 /*--------------------------------------------------------------------------*/
 /*--------------------- PRIVATE PART OF THE CLASS --------------------------*/
