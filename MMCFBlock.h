@@ -227,15 +227,17 @@ class MMCFBlock : public Block
   * SimpleConfiguration< int >, then the f_value (an int) dictates which
   * MMCF formulation as follows:
   *
-  * - [0]: the standard knapsack formulation in which get_NArcs()
+  * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
   *   and the flow constraints are handled in the father MMCFBlock;
   *
-  * - [1]: the standard flow formulation in which get_NComm() MCFBlock
+  * - [0]: the standard flow formulation in which get_NComm() MCFBlock
   *   sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *
   * - [other ones possibly to follow].
+  * 
+  *  by default is considered the Flow relaxation
   */
 
  void generate_abstract_variables( Configuration * stvv = nullptr ) override;
@@ -464,11 +466,11 @@ void chg_fixed_costs( int seed , double lambda )
 
  static constexpr unsigned char KnapsackRelaxation = 4; 
  /**< third bit of AR == 1
-   * - [0]: the standard knapsack formulation in which get_NArcs()
+   * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
   *   and the flow constraints are handled in the father MMCFBlock;
   *
-  * - [1]: the standard flow formulation in which get_NComm() MCFBlock
+  * - [0]: the standard flow formulation in which get_NComm() MCFBlock
   *   sub-Block are constructed, one for each commodity, and the
   *   linking constraints are handled in the father MMCFBlock;
   *

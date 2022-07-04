@@ -1010,15 +1010,10 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   FMultiVector costs;
   double Cmax = 0;
   double Umax = 0;
-
-  if( ( NCnst != NArcs ) && Active.size() ) {
-   weights.resize( NArcs );  // allocate weights for the knapsack sub-problem
-   costs.resize( NArcs );  // allocate costs for the knapsack sub-problem
-   bound.resize( NArcs );
+  double sumF = 0;
+  int sumQ = 0;
 
    int i = 0;
-   int sumQ = 0;
-   double CMax = 0;
    
    for( int j = 0 ; j < NNodes ; j++ )
     for( int k = 0 ; k < NComm ; k++ ) {
@@ -1032,13 +1027,20 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       Cmax += C[ k ][ j ];
      if( U[ k ][ j ] > 0 ) 
       Umax += U[ k ][ j ]; 
+     sumF += F[ j ]; 
      }
 
    Umax = 10 * Umax * NNodes * sumQ;
    Cmax = 10 * Cmax * NNodes * sumQ * Umax;
+   
+  if( ( NCnst != NArcs ) && Active.size() ) {
+   weights.resize( NArcs );  // allocate weights for the knapsack sub-problem
+   costs.resize( NArcs );  // allocate costs for the knapsack sub-problem
+   bound.resize( NArcs );
+
 
    for( Index j = 0 ; j < NArcs ; j++ ) {
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0 ) {
      weights[ j ].resize( NComm + 1 );
      costs[ j ].resize( NComm + 1 );
      }
@@ -1054,13 +1056,13 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       costs[ j ][ k ] = Cmax; 
      }
 
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0) {
      costs[ j ][ NComm ] =  F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
      }
 
     items = NComm;
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0) {
      items++;
      Integrality.resize( NComm + 1 );
      for( Index k = 0 ; k < NComm ; ++k )
@@ -1093,7 +1095,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
    costs.resize( NArcs  );  // allocate costs for the knapsack sub-problem
  
    for( Index j = 0 ; j < NArcs ; j++ ) {
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs  && sumF>0) {
      weights[ j ].resize( NComm + 1 );
      costs[ j ].resize( NComm + 1 );
      }
@@ -1114,7 +1116,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       }
      }
 
-    if( F.size() == NArcs ) {
+    if( F.size() == NArcs && sumF>0 ) {
      costs[ j ][ NComm ] = F[ j ];
      weights[ j ][ NComm ] = - UTot[ j ];
      }
@@ -1122,7 +1124,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
 
    bound.resize( NArcs );
    items = NComm;
-   if( F.size() == NArcs ) {
+   if( F.size() == NArcs && sumF>0 ) {
     items++;
     Integrality.resize( NComm + 1 );
     for( Index j = 0 ; j < NComm ; ++j )
