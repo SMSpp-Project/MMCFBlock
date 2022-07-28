@@ -1021,14 +1021,15 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       sumQ += B[ k ][ j ];
     }  
    
-   for( int j = 0 ; j < NArcs ; j++ )
+   for( int j = 0 ; j < NArcs ; j++ ){
     for( int k = 0 ; k < NComm ; k++ ) {
      if( C[ k ][ j ] < Inf< double >() ) 
       Cmax += C[ k ][ j ];
      if( U[ k ][ j ] > 0 ) 
       Umax += U[ k ][ j ]; 
      sumF += F[ j ]; 
-     }
+    }
+   }
 
    Umax = 10 * Umax * NNodes * sumQ;
    Cmax = 10 * Cmax * NNodes * sumQ * Umax;

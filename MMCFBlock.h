@@ -55,6 +55,7 @@ namespace SMSpp_di_unipi_it
  *  @{ */
 
  using CNumber = MCFBlock::CNumber;
+ using c_RHSValue = RowConstraint::c_RHSValue;
  using Vec_CNumber = MCFBlock::Vec_CNumber;
  using FNumber = MCFBlock::FNumber;
  using Vec_FNumber = MCFBlock::Vec_FNumber;
@@ -393,6 +394,32 @@ class MMCFBlock : public Block
    return( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_dual()
 	   );   
   }
+
+
+/*--------------------------------------------------------------------------*/
+ /// get the potential of flow balance constraint for node i for commodity k
+
+ virtual void set_potential( CNumber pi,  Index k , Index i ) {
+  if( ( AR & HasMutual ) ){
+   if( !(AR & KnapsackRelaxation) )
+    static_cast< MCFBlock * >( v_Block[ k ] )->set_pi( pi, i );
+   else
+    FCs[ k ][ i ].set_dual(pi);
+   }
+  } 
+
+/*--------------------------------------------------------------------------*/
+ /// get the dual value of the linking constraint for arc i
+
+ virtual void set_dual( CNumber pi, Index i ) {
+  if( ( AR & HasMutual ) ){
+   if( !(AR & KnapsackRelaxation) )
+    MCs[ i ].set_dual(pi);
+   else
+    static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->set_dual(pi);   
+   }
+  }
+
 
 /*--------------------------------------------------------------------------*/
 
