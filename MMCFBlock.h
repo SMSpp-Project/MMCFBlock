@@ -415,8 +415,8 @@ class MMCFBlock : public Block
   if( ( AR & HasMutual ) ){
    if( !(AR & KnapsackRelaxation) )
     MCs[ i ].set_dual(pi);
-   else
-    static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->set_dual(pi);   
+   // else
+    // static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->set_dual(pi);
    }
   }
 
