@@ -448,8 +448,8 @@ void MMCFBlock::load( const std::string & input , char frmt )
   throw( std::invalid_argument( "can't open file" + fname ) );
 
  if( frmt == 'm' ) {  // mnetgen format - - - - - - - - - - - - - - - - - - -
-  Index who;  // it is dealt with separatedly, since it's simpler: the
-              // name of the arc (who) is explicitely given
+  Index who;  // it is dealt with separately, since it's simpler: the
+              // name of the arc (who) is explicitly given
 
   while( inputS >> who ) {
    if( ( who <= 0 ) || ( who > NArcs ) )
@@ -666,7 +666,7 @@ void MMCFBlock::load( const std::string & input , char frmt )
 
      // search for an arc (from, to) already defined among the unbundled ones
      // and whose "instance" relative to commodity comm has not already been
-     // taken: this is not the only way of accomodating unbundled arcs, (in
+     // taken: this is not the only way of accommodating unbundled arcs, (in
      // case of multiple instances of an unbundled arc (i, j)), but it is
      // easy to see that all the resulting problems, however you distribute
      // the instances to arcs, are equivalent
@@ -1167,7 +1167,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
   return;
   
  // if upper bounds are not there and the Configuration says so, the
- // LB0Constraintare not constructed
+ // LB0Constraint are not constructed
  unsigned char sl = 0;
  auto c = dynamic_cast< SimpleConfiguration< int > * >( stcc );
  if( ( ! c ) && f_BlockConfig &&
