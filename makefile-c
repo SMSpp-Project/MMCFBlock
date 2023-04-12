@@ -18,11 +18,7 @@
 #           $(MMCFH)   = the .h files to include for MMCFBlock               #
 #           $(MMCFINC) = the -I$( MMCFBlock directory )                      #
 #                                                                            #
-#                                VERSION 1.00                                #
-#                               20 - 07 - 2018                               #
-#                                                                            #
 #                              Antonio Frangioni                             #
-#                          Operations Research Group                         #
 #                         Dipartimento di Informatica                        #
 #                             Universita' di Pisa                            #
 #                                                                            #

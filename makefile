@@ -18,11 +18,7 @@
 #           $(MMCFH)   = the .h files to include                             #
 #           $(MMCFINC) = the -I$( source directory )                         #
 #                                                                            #
-#                                VERSION 1.10                                #
-#                               11 - 07 - 2021                               #
-#                                                                            #
 #                              Antonio Frangioni                             #
-#                          Operations Research Group                         #
 #                         Dipartimento di Informatica                        #
 #                             Universita' di Pisa                            #
 #                                                                            #
