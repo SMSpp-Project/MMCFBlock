@@ -990,7 +990,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
- if( !(AR & KnapsackRelaxation) ) {
+ if( ! ( AR & KnapsackRelaxation ) ) {
   v_Block.resize( NComm );
  
   for( Index k = 0 ; k < NComm ; ++k ) {
