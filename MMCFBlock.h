@@ -300,7 +300,9 @@ class MMCFBlock : public Block
 
 /*--------------------------------------------------------------------------*/
 
- bool useFlowRelaxation( void ) const { return(!(AR & KnapsackRelaxation) ); }
+ bool useFlowRelaxation( void ) const {
+  return( ! ( AR & KnapsackRelaxation ) );
+ }
 
 /*--------------------------------------------------------------------------*/
  /// getting the current sense of the Objective, which is minimization
@@ -323,7 +325,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( 0 );
  
-  if( !(AR & KnapsackRelaxation) )
+  if( ! ( AR & KnapsackRelaxation ) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_x( i ) );
   else {
    auto xk = static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_x( k );
@@ -340,7 +342,7 @@ class MMCFBlock : public Block
    return;
    }
 
-  if( !(AR & KnapsackRelaxation) )
+  if( ! ( AR & KnapsackRelaxation ) )
    static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
@@ -361,7 +363,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasVar ) )
    return( nullptr );
 
-  if(!(AR & KnapsackRelaxation) )
+  if( ! ( AR & KnapsackRelaxation ) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( i ) );
   else
    return( static_cast< BinaryKnapsackBlock * >(
@@ -375,7 +377,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( !(AR & KnapsackRelaxation) )
+  if( ! ( AR & KnapsackRelaxation ) )
    return( static_cast< MCFBlock * >( v_Block[ k ] )->get_pi( i ) );
   else
    return( FCs[ k ][ i ].get_dual() );
@@ -388,7 +390,7 @@ class MMCFBlock : public Block
   if( ! ( AR & HasMutual ) )
    return( 0 );
 
-  if( !(AR & KnapsackRelaxation) )
+  if( ! ( AR & KnapsackRelaxation ) )
    return( MCs[ i ].get_dual() );
   else
    return( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_dual()
@@ -401,7 +403,7 @@ class MMCFBlock : public Block
 
  virtual void set_potential( CNumber pi,  Index k , Index i ) {
   if( ( AR & HasMutual ) ){
-   if( !(AR & KnapsackRelaxation) )
+   if( ! ( AR & KnapsackRelaxation ) )
     static_cast< MCFBlock * >( v_Block[ k ] )->set_pi( pi, i );
    else
     FCs[ k ][ i ].set_dual(pi);
@@ -413,7 +415,7 @@ class MMCFBlock : public Block
 
  virtual void set_dual( CNumber pi, Index i ) {
   if( ( AR & HasMutual ) ){
-   if( !(AR & KnapsackRelaxation) )
+   if( ! ( AR & KnapsackRelaxation ) )
     MCs[ i ].set_dual(pi);
    else
     static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->set_dual(pi);   
