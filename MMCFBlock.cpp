@@ -1182,7 +1182,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  for( auto blck : v_Block )
   blck->generate_abstract_constraints();
 
- if( !(AR & KnapsackRelaxation) ) {
+ if( ! ( AR & KnapsackRelaxation ) ) {
   // count number of nonzeroes in each constraint, i.e., #FS( i ) + #BS( i )
   Subset count( get_NArcs() );
   
