@@ -434,7 +434,7 @@ void MMCFBlock::load( const std::string & input , char frmt )
 
  inputS.close();
 
- UTot.assign( NArcs , Inf<FNumber>() );
+ UTot.assign( NArcs , Inf< FNumber >() );
 
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  // now the though part: reading arc info - - - - - - - - - - - - - - - - - -
@@ -1110,7 +1110,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     for( Index k = 0 ; k < NComm ; k++ ) {
      weights[ j ][ k ] = U[ k ][ j ];
      costs[ j ][ k ] =  C[ k ][ j ] * U[ k ][ j ];
-     if( C[ k ][ j ] >= Inf<double>() ) {
+     if( C[ k ][ j ] >= Inf< double >() ) {
       costs[ j ][ k ] = Cmax * U[ k ][ j ];
       weights[ j ][ k ] = Umax;
       }
@@ -1210,7 +1210,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
     MCs[ j ].set_function( new LinearFunction(
 				  std::move( coeffs[ Active[ j ] ] ) , 0 ) );
     MCs[ j ].set_rhs( UTot[ Active[ j ] ] );
-    MCs[ j ].set_lhs( -Inf<double>() );
+    MCs[ j ].set_lhs( -Inf< double >() );
     }
    }
   else{
@@ -1301,7 +1301,7 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
  
    for( Index i = 0; i < get_NArcs() ; ++i ) {
     for( Index k = 0 ; k < get_NComm() ; ++k ) {   
-     (SLCs)[ k ][ i ].set_lhs( -Inf<double>() );
+     (SLCs)[ k ][ i ].set_lhs( -Inf< double >() );
      (SLCs)[ k ][ i ].set_rhs( 0 );
      (SLCs)[ k ][ i ].set_function(
 	      new LinearFunction( std::move( coeffsSLC[ k ][ i ] ) , 0 ) );
@@ -1348,7 +1348,7 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
   for( Index i = 0 ; i < NArcs ; i++ )
    if( ( B[ k ][ Startn[ i ] - StrtNme ] == Inf< double >() ) ||
        ( B[ k ][ Endn[ i ] - StrtNme ] == Inf< double >() ) )
-    C[ k ][ i ] = Inf<double>();
+    C[ k ][ i ] = Inf< double >();
 
  // ensure that all non-existent arcs have zero capacity- - - - - - - - - - -
  // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1397,7 +1397,7 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
  for( Index i = NCnst = 0 ; i < NArcs ; i++ ) {
   if( ( ! IncUk ) && ( ! UTot[ i ] ) ) {   // if mutual capacities can not
    for( Index k = NComm ; k-- ; ) {        // increase, and UTot[] == 0 ...
-    C[ k ][ i ] = Inf<double>();           // ... this arc does not exist
+    C[ k ][ i ] = Inf< double >();         // ... this arc does not exist
     U[ k ][ i ] = 0;
     }
 
@@ -1510,7 +1510,7 @@ void MMCFBlock::PreProcess( FNumber IncUk , FNumber DecUk ,
    ActiveK[ k ].clear();
   else { // some are active, some are not
    ActiveK[ k ].resize(cnt + 1);
-   ActiveK[ k ][ cnt ] = Inf<Index>();
+   ActiveK[ k ][ cnt ] = Inf< Index >();
    }
   }   // end for( k )
 
