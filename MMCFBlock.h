@@ -493,7 +493,7 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
- static constexpr unsigned char KnapsackRelaxation = 4; 
+ static constexpr unsigned char KnapsackRelaxation = 4;
  /**< third bit of AR == 1
    * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
