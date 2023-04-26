@@ -985,14 +985,14 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
                         f_BlockConfig->f_static_variables_Configuration );
  if( c )
   fr = c->value();
- 
- AR = ( AR & ( ~4 ) ) | ( 4 * fr );
-  
+
+ AR = ( AR & ( ~KnapsackRelaxation ) ) | ( KnapsackRelaxation * fr );
+
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
  if( ! ( AR & KnapsackRelaxation ) ) {
   v_Block.resize( NComm );
- 
+
   for( Index k = 0 ; k < NComm ; ++k ) {
    //!! TODO: if( PT[ k ] == kSPT ) do something more clever
    auto MCFb = new MCFBlock( this );
@@ -1013,13 +1013,13 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
   int sumQ = 0;
 
    int i = 0;
-   
+
    for( int j = 0 ; j < NNodes ; j++ )
     for( int k = 0 ; k < NComm ; k++ ) {
      if( B[ k ][ j ] > 0 )
       sumQ += B[ k ][ j ];
     }  
-   
+
    for( int j = 0 ; j < NArcs ; j++ ){
     for( int k = 0 ; k < NComm ; k++ ) {
      if( C[ k ][ j ] < Inf< double >() ) 
