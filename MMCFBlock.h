@@ -31,11 +31,17 @@
 /*--------------------------------------------------------------------------*/
 
 #include "Block.h"
+
 #include "MCFBlock.h"
+
 #include "BinaryKnapsackBlock.h"
+
 #include "ColVariable.h"
+
 #include "FRowConstraint.h"
+
 #include "Configuration.h"
+
 #include "Objective.h"
 
 /*--------------------------------------------------------------------------*/
@@ -237,7 +243,7 @@ class MMCFBlock : public Block
   *   linking constraints are handled in the father MMCFBlock;
   *
   * - [other ones possibly to follow].
-  * 
+  *
   *  by default is considered the Flow relaxation
   */
 
@@ -511,8 +517,6 @@ void chg_fixed_costs( int seed , double lambda )
   *
   * by default is considered the Flow relaxation
   */
-
- static constexpr unsigned char addFixedCosts = 8; 
 
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
