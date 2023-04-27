@@ -183,7 +183,7 @@ class MMCFBlock : public Block
   * more easily solvable. The parameters to be given are the following:
   *
   * IncUk , DecUk   => (>= 0) upper bounds on the increase and decrease of the
-  *                    mutual capacities: may be Inf<FNumber>() if unknown;
+  *                    mutual capacities: may be Inf< FNumber >() if unknown;
   *
   * IncUjk , DecUjk => (>= 0) same as above for single-commodity capacities;
   *
@@ -193,13 +193,13 @@ class MMCFBlock : public Block
   *                    finite individual capacities for arcs that have none;
   *
   * DecCsts         => (>= 0) upper bound on the decrease of arc Costs: must
-  *                    be < Inf<CNumber>().
+  *                    be < Inf< CNumber >().
   *
   * Giving tight bounds (0 is the best, obviously) may cause the preprocessor
   * to find more redundant coupling constraints, to squeeze down individual
   * arc capacities, to remove more unused arcs and in general to do a better
   * preprocessing; for instance, IncUjk == 0 allows PreProcess() to declare
-  * un-existent (set the cost to Inf<CNumber>()) any arc with 0 individual
+  * un-existent (set the cost to Inf< CNumber >()) any arc with 0 individual
   * capacity.
   *
   * For all k such that, after the pre-processing, the graph has only a source
