@@ -349,7 +349,7 @@ class MMCFBlock : public Block
    }
 
   if( ! ( AR & KnapsackRelaxation ) )
-   static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
+   static_cast< MCFBlock * >( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
    if( k == NComm )
@@ -553,7 +553,7 @@ void chg_fixed_costs( int seed , double lambda )
 			* constraint is defined */
  MultiSubset ActiveK;  ///< Like Active for individual capacities
  bool DrctdPrb;        ///< true if the problem is directed
- std::vector<MCFType> PT;  ///< type of flow subproblem
+ std::vector< MCFType > PT;  ///< type of flow subproblem
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another
