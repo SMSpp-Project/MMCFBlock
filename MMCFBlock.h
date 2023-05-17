@@ -17,7 +17,7 @@
  *         Laboratoire d'Informatique de Paris Nord \n
  *         Universite' Sorbonne Paris Nord \n
  *
- * Copyright &copy by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
+ * \copyright &copy; by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
  */
 /*--------------------------------------------------------------------------*/
 /*----------------------------- DEFINITIONS --------------------------------*/
