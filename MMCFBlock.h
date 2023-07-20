@@ -408,7 +408,7 @@ class MMCFBlock : public Block
  /// get the potential of flow balance constraint for node i for commodity k
 
  virtual void set_potential( CNumber pi,  Index k , Index i ) {
-  if( ( AR & HasMutual ) ){
+  if( ( AR & HasMutual ) ) {
    if( ! ( AR & KnapsackRelaxation ) )
     static_cast< MCFBlock * >( v_Block[ k ] )->set_pi( pi, i );
    else
@@ -420,7 +420,7 @@ class MMCFBlock : public Block
  /// get the dual value of the linking constraint for arc i
 
  virtual void set_dual( CNumber pi, Index i ) {
-  if( ( AR & HasMutual ) ){
+  if( ( AR & HasMutual ) ) {
    if( ! ( AR & KnapsackRelaxation ) )
     MCs[ i ].set_dual(pi);
    else

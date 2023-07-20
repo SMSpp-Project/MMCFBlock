@@ -1018,7 +1018,7 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
       sumQ += B[ k ][ j ];
     }  
 
-   for( int j = 0 ; j < NArcs ; j++ ){
+   for( int j = 0 ; j < NArcs ; j++ ) {
     for( int k = 0 ; k < NComm ; k++ ) {
      if( C[ k ][ j ] < Inf< double >() ) 
       Cmax += C[ k ][ j ];
@@ -1681,7 +1681,7 @@ void MMCFBlock::deserialize( const netCDF::NcGroup & group )
  ut.getVar( UTot.data() );
 
  auto fc = group.getVar( "F" );
- if( ! fc.isNull() ){
+ if( ! fc.isNull() ) {
   F.resize( NArcs );
   fc.getVar( F.data() );
   }
