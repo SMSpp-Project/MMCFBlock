@@ -17,7 +17,7 @@
 #           $(MMCFSDR)  = the directory where MMCFBlock source is            #
 #                                                                            #
 #   Output: $(MMCFOBJ)  = the final object(s) / library                      #
-#           $(MMCFLIB)  = external libraries + -L<libdirs>                   #
+#           $(MMCFLIB)  = external libraries + -L< libdirs >                 #
 #           $(MMCFH)    = the .h files to include for MMCFBlock              #
 #           $(MMCFINC)  = the -I$( MMCFBlock directory )                     #
 #                                                                            #
@@ -33,18 +33,18 @@
 # each module outputs some macros to be used here:
 # *OBJ is the final object/library
 # *H   is the list of all include files
-# *INC is the -I<include directories>
+# *INC is the -I< include directories >
 
 # define input macros for MCFBlock makefile + dependencies, then include it
-MCFBkSDR = $(MMCFSDR)../MCFBlock/
-include $(MCFBkSDR)makefile-s
+MCFBkSDR = $(MMCFSDR)/../MCFBlock
+include $(MCFBkSDR)/makefile-s
 
 # define input macros for BinaryKnapsackBlock makefile, then include it
-BKBkSDR = $(MMCFSDR)../BinaryKnapsackBlock/
-include $(BKBkSDR)makefile
+BKBkSDR = $(MMCFSDR)/../BinaryKnapsackBlock
+include $(BKBkSDR)/makefile
 
 # include the makefile requiring all external modules in input
-include $(MMCFSDR)makefile
+include $(MMCFSDR)/makefile
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -54,7 +54,7 @@ MMCFOBJ := $(MMCFOBJ) $(BKBkOBJ) $(MCFBkOBJ)
 MMCFH := $(MMCFH) $(BKBkH) $(MCFBkH)
 MMCFINC := $(BKBkINC) $(MCFBkINC) $(MMCFINC)
 
-# external libreries for MMCFBlock
+# external libraries for MMCFBlock
 MMCFLIB = $(MCFBkLIB)
 
 ########################### End of makefile-s ################################

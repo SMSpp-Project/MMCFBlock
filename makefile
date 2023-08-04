@@ -12,11 +12,11 @@
 #           $(SW)       = compiler options                                   #
 #           $(SMS++INC) = the -I$( core SMS++ directory )                    #
 #           $(SMS++OBJ) = the libSMS++ library itself                        #
-#           $(MMCFSDR) = the directory where the source is                   #
+#           $(MMCFSDR)  = the directory where the source is                  #
 #                                                                            #
-#   Output: $(MMCFOBJ) = the final object(s) / library                       #
-#           $(MMCFH)   = the .h files to include                             #
-#           $(MMCFINC) = the -I$( source directory )                         #
+#   Output: $(MMCFOBJ)  = the final object(s) / library                      #
+#           $(MMCFH)    = the .h files to include                            #
+#           $(MMCFINC)  = the -I$( source directory )                        #
 #                                                                            #
 #                              Antonio Frangioni                             #
 #                         Dipartimento di Informatica                        #
@@ -27,21 +27,21 @@
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-MMCFOBJ = $(MMCFSDR)MMCFBlock.o
+MMCFOBJ = $(MMCFSDR)/MMCFBlock.o
 
 MMCFINC = -I$(MMCFSDR)
 
-MMCFH   = $(MMCFSDR)MMCFBlock.h
+MMCFH   = $(MMCFSDR)/MMCFBlock.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 clean::
-	rm -f $(MMCFOBJ) $(MILPBSDR)*~
+	rm -f $(MMCFOBJ) $(MILPBSDR)/*~
 
 # dependencies: every .o from its .C + every recursively included .h- - - - -
 
-$(MMCFSDR)MMCFBlock.o: $(MMCFSDR)MMCFBlock.cpp \
-	$(MMCFSDR)MMCFBlock.h $(SMS++OBJ)
+$(MMCFSDR)/MMCFBlock.o: $(MMCFSDR)/MMCFBlock.cpp \
+	$(MMCFSDR)/MMCFBlock.h $(SMS++OBJ)
 	$(CC) -c $*.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
 
 ########################## End of makefile ###################################
