@@ -6,7 +6,7 @@
 #                                                                            #
 #   The makefile defines internally all external libraries (comprised the    #
 #   SMS++ one) required by MMCFBlock. Accordingly, all necessary OBJ, H,     #
-#   -I directives, external libraries + -L<libdirs> are added to the         #
+#   -I directives, external libraries + -L< libdirs > are added to the       #
 #   corresponding MMCF* macros.                                              #
 #                                                                            #
 #   Input:  $(CC)      = compiler command                                    #
