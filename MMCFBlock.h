@@ -450,7 +450,7 @@ class MMCFBlock : public Block
 
 void chg_fixed_costs( int seed , double lambda )
 {
- double Cmean[get_NArcs()];
+ std::vector< double > Cmean( get_NArcs() );
  
  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
   Cmean[ i ] = 0;
