@@ -1,8 +1,7 @@
 
 .DS_Store
 MMCFBlock.o
-test/MMCFtest
 .settings/language.settings.xml
 .project
 .cproject
-test/main.o
+build/

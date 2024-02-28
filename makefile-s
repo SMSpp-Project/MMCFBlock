@@ -8,7 +8,7 @@
 #   MMCFBlock, excluding the SMS++ core ones whose symbols are assumed to    #
 #   have been defined already (typically by including SMS++/lib/makefile).   #
 #   Accordingly, all necessary OBJ, H, -I directives, external libraries     #
-#   + -L<libdirs> are added to the corresponding MMCF* macros.               #
+#   + -L< libdirs > are added to the corresponding MMCF* macros.             #
 #                                                                            #
 #   Input:  $(CC)       = compiler command                                   #
 #           $(SW)       = compiler options                                   #
@@ -17,7 +17,7 @@
 #           $(MMCFSDR)  = the directory where MMCFBlock source is            #
 #                                                                            #
 #   Output: $(MMCFOBJ)  = the final object(s) / library                      #
-#           $(MMCFLIB)  = external libraries + -L<libdirs>                   #
+#           $(MMCFLIB)  = external libraries + -L< libdirs >                 #
 #           $(MMCFH)    = the .h files to include for MMCFBlock              #
 #           $(MMCFINC)  = the -I$( MMCFBlock directory )                     #
 #                                                                            #
@@ -33,20 +33,20 @@
 # each module outputs some macros to be used here:
 # *OBJ is the final object/library
 # *H   is the list of all include files
-# *INC is the -I<include directories>
+# *INC is the -I< include directories >
 
 # define input macros for MCFBlock makefile + dependencies, then include it
-MCFBkSDR = $(MMCFSDR)../MCFBlock/
-include $(MCFBkSDR)makefile-s
+MCFBkSDR = $(MMCFSDR)/../MCFBlock
+include $(MCFBkSDR)/makefile-s
 
 # define input macros for BinaryKnapsackBlock makefile, then include it
-BKBkSDR = $(MMCFSDR)../BinaryKnapsackBlock/
-include $(BKBkSDR)makefile
+BKBkSDR = $(MMCFSDR)/../BinaryKnapsackBlock
+include $(BKBkSDR)/makefile
 
 # include the makefile requiring all external modules in input
-include $(MMCFSDR)makefile
+include $(MMCFSDR)/makefile
 
-# macroes to be exported- - - - - - - - - - - - - - - - - - - - - - - - - - -
+# macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 # append external -I directives to MILPBINC, MILPBOBJ and MILPBH as defined
 # by the makefile, thus the := assignment has to be used (use GNU make)
@@ -54,7 +54,7 @@ MMCFOBJ := $(MMCFOBJ) $(BKBkOBJ) $(MCFBkOBJ)
 MMCFH := $(MMCFH) $(BKBkH) $(MCFBkH)
 MMCFINC := $(BKBkINC) $(MCFBkINC) $(MMCFINC)
 
-# external libreries for MMCFBlock
+# external libraries for MMCFBlock
 MMCFLIB = $(MCFBkLIB)
 
 ########################### End of makefile-s ################################

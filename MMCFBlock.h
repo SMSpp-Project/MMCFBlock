@@ -17,7 +17,7 @@
  *         Laboratoire d'Informatique de Paris Nord \n
  *         Universite' Sorbonne Paris Nord \n
  *
- * Copyright &copy by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
+ * \copyright &copy; by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
  */
 /*--------------------------------------------------------------------------*/
 /*----------------------------- DEFINITIONS --------------------------------*/
@@ -31,11 +31,17 @@
 /*--------------------------------------------------------------------------*/
 
 #include "Block.h"
+
 #include "MCFBlock.h"
+
 #include "BinaryKnapsackBlock.h"
+
 #include "ColVariable.h"
+
 #include "FRowConstraint.h"
+
 #include "Configuration.h"
+
 #include "Objective.h"
 
 /*--------------------------------------------------------------------------*/
@@ -177,7 +183,7 @@ class MMCFBlock : public Block
   * more easily solvable. The parameters to be given are the following:
   *
   * IncUk , DecUk   => (>= 0) upper bounds on the increase and decrease of the
-  *                    mutual capacities: may be Inf<FNumber>() if unknown;
+  *                    mutual capacities: may be Inf< FNumber >() if unknown;
   *
   * IncUjk , DecUjk => (>= 0) same as above for single-commodity capacities;
   *
@@ -187,13 +193,13 @@ class MMCFBlock : public Block
   *                    finite individual capacities for arcs that have none;
   *
   * DecCsts         => (>= 0) upper bound on the decrease of arc Costs: must
-  *                    be < Inf<CNumber>().
+  *                    be < Inf< CNumber >().
   *
   * Giving tight bounds (0 is the best, obviously) may cause the preprocessor
   * to find more redundant coupling constraints, to squeeze down individual
   * arc capacities, to remove more unused arcs and in general to do a better
   * preprocessing; for instance, IncUjk == 0 allows PreProcess() to declare
-  * un-existent (set the cost to Inf<CNumber>()) any arc with 0 individual
+  * un-existent (set the cost to Inf< CNumber >()) any arc with 0 individual
   * capacity.
   *
   * For all k such that, after the pre-processing, the graph has only a source
@@ -237,7 +243,7 @@ class MMCFBlock : public Block
   *   linking constraints are handled in the father MMCFBlock;
   *
   * - [other ones possibly to follow].
-  * 
+  *
   *  by default is considered the Flow relaxation
   */
 
@@ -343,7 +349,7 @@ class MMCFBlock : public Block
    }
 
   if( ! ( AR & KnapsackRelaxation ) )
-   static_cast<MCFBlock *>( v_Block[ k ] )->get_x( fk.begin() ,
+   static_cast< MCFBlock * >( v_Block[ k ] )->get_x( fk.begin() ,
 						   Range( 0 , NArcs ) );
   else
    if( k == NComm )
@@ -402,7 +408,7 @@ class MMCFBlock : public Block
  /// get the potential of flow balance constraint for node i for commodity k
 
  virtual void set_potential( CNumber pi,  Index k , Index i ) {
-  if( ( AR & HasMutual ) ){
+  if( ( AR & HasMutual ) ) {
    if( ! ( AR & KnapsackRelaxation ) )
     static_cast< MCFBlock * >( v_Block[ k ] )->set_pi( pi, i );
    else
@@ -414,7 +420,7 @@ class MMCFBlock : public Block
  /// get the dual value of the linking constraint for arc i
 
  virtual void set_dual( CNumber pi, Index i ) {
-  if( ( AR & HasMutual ) ){
+  if( ( AR & HasMutual ) ) {
    if( ! ( AR & KnapsackRelaxation ) )
     MCs[ i ].set_dual(pi);
    else
@@ -444,7 +450,7 @@ class MMCFBlock : public Block
 
 void chg_fixed_costs( int seed , double lambda )
 {
- double Cmean[get_NArcs()];
+ std::vector< double > Cmean( get_NArcs() );
  
  for( Index i = 0 ; i < get_NArcs() ; ++i ) {
   Cmean[ i ] = 0;
@@ -493,7 +499,7 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char HasMutual = 2;
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
- static constexpr unsigned char KnapsackRelaxation = 4; 
+ static constexpr unsigned char KnapsackRelaxation = 4;
  /**< third bit of AR == 1
    * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
@@ -511,8 +517,6 @@ void chg_fixed_costs( int seed , double lambda )
   *
   * by default is considered the Flow relaxation
   */
-
- static constexpr unsigned char addFixedCosts = 8; 
 
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
@@ -549,7 +553,7 @@ void chg_fixed_costs( int seed , double lambda )
 			* constraint is defined */
  MultiSubset ActiveK;  ///< Like Active for individual capacities
  bool DrctdPrb;        ///< true if the problem is directed
- std::vector<MCFType> PT;  ///< type of flow subproblem
+ std::vector< MCFType > PT;  ///< type of flow subproblem
 
  Vec_Bool CIsCpy;     ///< true for each row of C[] that is a copy of another
  Vec_Bool UIsCpy;     ///< true for each row of U[] that is a copy of another

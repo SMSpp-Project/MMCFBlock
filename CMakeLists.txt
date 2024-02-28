@@ -15,10 +15,11 @@
 #          keep it in mind when editing it.                                   #
 #                                                                             #
 #                              Niccolo' Iardella                              #
+#                                Donato Meoli                                 #
 #                         Dipartimento di Informatica                         #
 #                             Universita' di Pisa                             #
 # --------------------------------------------------------------------------- #
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.19)
 cmake_policy(VERSION 3.12)
 project(MMCFBlock
         VERSION 0.2.0
@@ -53,7 +54,7 @@ include(BuildType)
 if (NOT hasParent)
     find_package(MCFBlock REQUIRED)
     find_package(BinaryKnapsackBlock REQUIRED)
-endif()
+endif ()
 
 # ----- Configuration header ------------------------------------------------ #
 # This will generate a *Config.h header in the build directory.
