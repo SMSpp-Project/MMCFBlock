@@ -38,7 +38,7 @@ MMCFH   = $(MMCFSDR)/MMCFBlock.h
 clean::
 	rm -f $(MMCFOBJ) $(MILPBSDR)/*~
 
-# dependencies: every .o from its .C + every recursively included .h- - - - -
+# dependencies: every .o from its .cpp + every recursively included .h- - - -
 
 $(MMCFSDR)/MMCFBlock.o: $(MMCFSDR)/MMCFBlock.cpp \
 	$(MMCFSDR)/MMCFBlock.h $(SMS++OBJ)
