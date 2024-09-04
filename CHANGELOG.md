@@ -53,6 +53,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- First release.
+- First test release.
 
+[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.1...develop
+[0.3.1]: https://gitlab.com/smspp/mmcfblock/-/tags/0.3.0...0.3.1
+[0.3.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.2.0...0.3.0
+[0.2.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.1.0
