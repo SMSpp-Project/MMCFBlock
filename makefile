@@ -27,11 +27,11 @@
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-MMCFOBJ = $(MMCFSDR)/MMCFBlock.o
+MMCFOBJ = $(MMCFSDR)/obj/MMCFBlock.o
 
 MMCFINC = -I$(MMCFSDR)
 
-MMCFH   = $(MMCFSDR)/MMCFBlock.h
+MMCFH   = $(MMCFSDR)/include/MMCFBlock.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -40,8 +40,8 @@ clean::
 
 # dependencies: every .o from its .cpp + every recursively included .h- - - -
 
-$(MMCFSDR)/MMCFBlock.o: $(MMCFSDR)/MMCFBlock.cpp \
-	$(MMCFSDR)/MMCFBlock.h $(SMS++OBJ)
+$(MMCFSDR)/obj/MMCFBlock.o: $(MMCFSDR)/src/MMCFBlock.cpp \
+	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
 	$(CC) -c $*.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
 
 ########################## End of makefile ###################################
