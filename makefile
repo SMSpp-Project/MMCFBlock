@@ -29,7 +29,7 @@
 
 MMCFOBJ = $(MMCFSDR)/obj/MMCFBlock.o
 
-MMCFINC = -I$(MMCFSDR)
+MMCFINC = -I$(MMCFSDR)/include
 
 MMCFH   = $(MMCFSDR)/include/MMCFBlock.h
 
@@ -42,6 +42,6 @@ clean::
 
 $(MMCFSDR)/obj/MMCFBlock.o: $(MMCFSDR)/src/MMCFBlock.cpp \
 	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
-	$(CC) -c $*.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
+	$(CC) -c $(MMCFSDR)/src/MMCFBlock.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
 
 ########################## End of makefile ###################################
