@@ -15,7 +15,7 @@
 #                         Dipartimento di Informatica                         #
 #                             Universita' di Pisa                             #
 # --------------------------------------------------------------------------- #
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 cmake_policy(VERSION 3.15)
 project(MMCFBlock
         VERSION 0.3.1
@@ -64,7 +64,7 @@ target_compile_features(${modName} PUBLIC cxx_std_17)
 
 if (MSVC AND BUILD_SHARED_LIBS)
     target_link_options(${modName} INTERFACE "/INCLUDE:SMSpp_force_load_${modName}")
-endif()
+endif ()
 
 # When adding source files with target_sources(), PRIVATE means that the files
 # should only be added to this library, whereas PUBLIC means they should be
@@ -95,8 +95,8 @@ target_include_directories(
 # library, INTERFACE means they will be linked only to the targets that depend
 # on this library.
 target_link_libraries(${modName} PUBLIC
-                      ${modNamespace}::MCFBlock
-                      ${modNamespace}::BinaryKnapsackBlock)
+        ${modNamespace}::MCFBlock
+        ${modNamespace}::BinaryKnapsackBlock)
 
 # This alias is defined so that executables in this same project can use
 # the library with this notation.
@@ -167,8 +167,8 @@ install(FILES
 # dynamic loading will look into it.
 if (hasParent)
     set(SMSPP_BUILD_RPATH
-        "${SMSPP_BUILD_RPATH};${CMAKE_CURRENT_BINARY_DIR}"
-        PARENT_SCOPE)
+            "${SMSPP_BUILD_RPATH};${CMAKE_CURRENT_BINARY_DIR}"
+            PARENT_SCOPE)
 endif ()
 
 # ----- Packaging support --------------------------------------------------- #
@@ -183,9 +183,9 @@ if (NOT hasParent)
     set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_LIST_DIR}/LICENSE")
     set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_LIST_DIR}/README.md")
     set(CPACK_SOURCE_IGNORE_FILES
-        \\\\.git/
-        \\\\.gitignore$
-        \\\\.gitattributes$)
+            \\\\.git/
+            \\\\.gitignore$
+            \\\\.gitattributes$)
     include(CPack)
 endif ()
 
