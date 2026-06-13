@@ -8,7 +8,7 @@ formats and can be represented in a number of different ways. The
 `MMCFBlock` so far basically only provides a convenient way to read an
 instance out of the many formats, such as some of those available from
 
-	https://commalab.di.unipi.it/datasets/mmcf/
+    https://commalab.di.unipi.it/datasets/mmcf/
 
 and construct the two most basic formulations, i.e.:
 
