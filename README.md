@@ -113,7 +113,7 @@ conduct, and the process for submitting merge requests to us.
   Dipartimento di Matematica e Informatica  
   Università di Cagliari
 
-- **Francesco Demelas**  
+- **Francesca Demelas**  
   Laboratoire d'Informatique de Paris Nord  
   Universite' Sorbonne Paris Nord
 
