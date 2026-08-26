@@ -966,25 +966,47 @@ void MMCFBlock::load( std::istream & input , char frmt )
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFBlock::generate_abstract_variables( Configuration * stvv )
+void MMCFBlock::set_structure( Configuration * strc )
 {
- if( AR & HasVar ) {
-  // TODO: check if stvv agrees with the formulation we currently have
-  //       and throw exception otherwise
+ static const std::string _prfx = "MMCFBlock::set_structure: ";
+
+ if( ( ! strc ) && f_BlockConfig )
+  strc = f_BlockConfig->f_structure_Configuration;
+
+ /* No choice is being made here: the structure is left as it is, to be
+  * decided by generate_abstract_variables() out of the Configuration of the
+  * Variable, which is how it has always worked. */
+ if( ! strc )
   return;
+
+ auto c = dynamic_cast< SimpleConfiguration< int > * >( strc );
+ if( ! c )
+  throw( std::invalid_argument( _prfx + "the structure of a MMCFBlock is a "
+                                "SimpleConfiguration< int >" ) );
+
+ guts_of_set_structure( c->value() ? KnapsackRelaxation : 0 );
+
+ }  // end( MMCFBlock::set_structure )
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::guts_of_set_structure( unsigned char knap )
+{
+ if( ! v_Block.empty() ) {   // there is a structure already
+  if( ( AR & KnapsackRelaxation ) == knap )
+   return;                   // and it is the one being asked for
+
+  if( AR & HasVar )
+   throw( std::logic_error( "MMCFBlock::set_structure: the abstract "
+                            "representation has been generated already, "
+                            "hence the structure can no longer be changed" ) );
+
+  for( auto bk : v_Block )   // the sub-Block are the wrong ones
+   delete bk;
+  v_Block.clear();
   }
 
- // TODO: check stvv and construct other formulations accordingly
- unsigned char fr = 0;
- auto c = dynamic_cast< SimpleConfiguration< int > * >( stvv );
- if( ( ! c ) && f_BlockConfig &&
-     f_BlockConfig->f_static_variables_Configuration )
-  c = dynamic_cast< SimpleConfiguration< int > * >(
-                        f_BlockConfig->f_static_variables_Configuration );
- if( c )
-  fr = c->value();
-
- AR = ( AR & ( ~KnapsackRelaxation ) ) | ( KnapsackRelaxation * fr );
+ AR = ( AR & ( ~KnapsackRelaxation ) ) | knap;
 
  // initialize the children - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1149,6 +1171,41 @@ void MMCFBlock::generate_abstract_variables( Configuration * stvv )
     }
    }
   }
+
+ }  // end( MMCFBlock::guts_of_set_structure )
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::generate_abstract_variables( Configuration * stvv )
+{
+ if( AR & HasVar )  // the Variable are there already
+  return;           // nothing to do
+
+ /* Which structure the MMCFBlock has, i.e., one MCFBlock per commodity or
+  * one BinaryKnapsackBlock per arc, is a matter for set_structure(); it is
+  * decided here, out of the Configuration of the Variable, only if nobody
+  * has decided it yet, which is how it has always worked. If it has, the
+  * two must agree. */
+
+ int fr = -1;
+ auto c = dynamic_cast< SimpleConfiguration< int > * >( stvv );
+ if( ( ! c ) && f_BlockConfig &&
+     f_BlockConfig->f_static_variables_Configuration )
+  c = dynamic_cast< SimpleConfiguration< int > * >(
+                        f_BlockConfig->f_static_variables_Configuration );
+ if( c )
+  fr = c->value();
+
+ const unsigned char knap = ( fr > 0 ) ? KnapsackRelaxation : 0;
+
+ if( v_Block.empty() )
+  guts_of_set_structure( knap );
+ else
+  if( ( fr >= 0 ) && ( knap != ( AR & KnapsackRelaxation ) ) )
+   throw( std::invalid_argument( "MMCFBlock::generate_abstract_variables: the "
+                                 "Configuration asks for a formulation that "
+                                 "does not agree with the structure that "
+                                 "set_structure() has already built" ) );
 
  // call the base class method to have it done in the sub-Block, if any
  Block::generate_abstract_variables();
