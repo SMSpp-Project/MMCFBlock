@@ -1016,6 +1016,12 @@ void MMCFBlock::guts_of_set_structure( unsigned char knap )
   for( Index k = 0 ; k < NComm ; ++k ) {
    //!! TODO: if( PT[ k ] == kSPT ) do something more clever
    auto MCFb = new MCFBlock( this );
+   // Startn and Endn are passed in this order on purpose: load() takes the
+   // ending nodes first, and the deficits here have the opposite sign of the
+   // MCFBlock ones (positive at the origin, negative at the destination),
+   // hence reversing the arcs swaps source and sink and the two conventions
+   // agree; costs and capacities are indexed by arc and do not move, so the
+   // flow on each arc is the same number in the two models
    MCFb->load( NNodes , NArcs , Startn , Endn , U[ k ] , C[ k ] , B[ k ] );
    v_Block[ k ] = MCFb;
    }
