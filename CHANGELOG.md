@@ -7,11 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added 
+### Added
 
-### Changed 
+### Changed
 
-### Fixed 
+### Fixed
+
+## [0.4.0] - 2026-09-12
+
+### Changed
+
+- which structure the MMCFBlock has, i.e., one MCFBlock per commodity or one
+  BinaryKnapsackBlock per arc, is now decided by `set_structure()`, since a
+  MMCF instance has no sub-Block of its own and the tree is entirely a
+  modelling choice; `generate_abstract_variables()` still makes the choice out
+  of the Configuration of the Variable if nobody has made it before, and
+  throws if the two disagree
+
+- the version of the module is the git tag of its repository, or the
+  VERSION.txt of a release tarball, and the shared library carries it: its
+  SONAME is major.minor while the major is 0, and it is installed with an
+  RPATH relative to itself, so that an installed tree keeps working wherever
+  it is moved
 
 ## [0.3.1] - 2024-02-28
 
@@ -55,8 +72,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First test release.
 
-[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.1...develop
-[0.3.1]: https://gitlab.com/smspp/mmcfblock/-/tags/0.3.0...0.3.1
-[0.3.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.2.0...0.3.0
-[0.2.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.1.0...0.2.0
+[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.4.0...develop
+[0.4.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.1...0.4.0
+[0.3.1]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.0...0.3.1
+[0.3.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.2.0...0.3.0
+[0.2.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.1.0...0.2.0
 [0.1.0]: https://gitlab.com/smspp/mmcfblock/-/tags/0.1.0

@@ -13,11 +13,11 @@
  *         Dipartimento di Informatica \n
  *         Universita' di Pisa \n
  *
- * \author Francesco Demelas \n
+ * \author Francesca Demelas \n
  *         Laboratoire d'Informatique de Paris Nord \n
  *         Universite' Sorbonne Paris Nord \n
  *
- * \copyright &copy; by Antonio Frangioni, Enrico Gorgone, Francesco Demelas
+ * \copyright &copy; by Antonio Frangioni, Enrico Gorgone, Francesca Demelas
  */
 /*--------------------------------------------------------------------------*/
 /*----------------------------- DEFINITIONS --------------------------------*/
@@ -248,6 +248,33 @@ class MMCFBlock : public Block
   */
 
  void generate_abstract_variables( Configuration * stvv = nullptr ) override;
+
+/*--------------------------------------------------------------------------*/
+ /// sets the structure of the MMCFBlock, i.e., which sub-Block it has
+ /** Sets the structure of the MMCFBlock [see Block::set_structure()], i.e.,
+  * which sub-Block it is made of, which for a MMCF problem is the very choice
+  * between the two formulations:
+  *
+  * - a SimpleConfiguration< int > with value 0: the flow formulation, in
+  *   which get_NComm() MCFBlock are constructed, one per commodity, and the
+  *   linking constraints are handled in the father MMCFBlock;
+  *
+  * - a SimpleConfiguration< int > with value 1: the knapsack formulation, in
+  *   which get_NArcs() BinaryKnapsackBlock are constructed, one per arc, and
+  *   the flow constraints are handled in the father MMCFBlock.
+  *
+  * A MMCF instance has no sub-Block of its own, the tree being entirely a
+  * modelling choice, which is why this is the right place for it rather than
+  * generate_abstract_variables(); the latter keeps making the choice, out of
+  * the Configuration of the Variable, if nobody has made it before, so that
+  * everything that used to work still does.
+  *
+  * The structure can be changed as long as no abstract representation has
+  * been generated, in which case the sub-Block are destroyed and rebuilt;
+  * afterwards exception is thrown, since rebuilding the tree under a
+  * generated abstract representation is not supported. */
+
+ void set_structure( Configuration * strc = nullptr ) override;
 
 /*--------------------------------------------------------------------------*/
 
@@ -489,6 +516,16 @@ void chg_fixed_costs( int seed , double lambda )
 
 /* @} ----------------------------------------------------------------------*/
 /*--------------------------- PROTECTED FIELDS  ----------------------------*/
+/*--------------------------------------------------------------------------*/
+
+ /// constructs the sub-Block of the given structure
+ /** Constructs the sub-Block of the structure encoded by \p knap, which is
+  * either KnapsackRelaxation or 0, destroying the ones of the other structure
+  * if they are there; it is what both set_structure() and
+  * generate_abstract_variables() do the work with. */
+
+ void guts_of_set_structure( unsigned char knap );
+
 /*--------------------------------------------------------------------------*/
 
  unsigned char AR;   ///< bit-wise coded: what abstract is there
