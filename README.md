@@ -32,7 +32,7 @@ stages of the development.
 These instructions will let you build `MMCFBlock` on your system.
 
 The module also comes ready-made: `sudo apt install libsmspp-mmcf-dev` from the
-[PPA of the project](https://launchpad.net/~smspp/+archive/ubuntu/ppa), which
+[PPA of the project](https://launchpad.net/~smspp-project/+archive/ubuntu/smspp), which
 has `smspp-mmcf` for its command-line tool as well, and `vcpkg install
 "smspp[core,mmcf]"` from the [SMS++ vcpkg
 registry](https://gitlab.com/smspp/vcpkg-registry); `conda install -c
