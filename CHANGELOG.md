@@ -44,8 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - bunch of minor fixes
 
-## [0.3.0] - 29-06-2022
-
+## [0.3.0] - 2022-06-29
 ### Added
 
 - `serialize()` and `deserialize()` functions
