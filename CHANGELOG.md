@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   drops what looks unused takes the registration away with it, so the target
   now tells whoever links it to keep the symbol that forces the module in,
   and on ELF, where naming the symbol is not enough, the library as a whole
+
 ### Fixed
 
 ## [0.4.0] - 2026-09-12
@@ -41,15 +42,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `set_dual()` and `set_potential()` functions
 
-### Changed 
+### Changed
 
 - adapted to new CMake / makefile organisation
 
-### Fixed 
+### Fixed
 
 - bunch of minor fixes
 
 ## [0.3.0] - 2022-06-29
+
 ### Added
 
 - `serialize()` and `deserialize()` functions
