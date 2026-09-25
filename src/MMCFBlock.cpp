@@ -1833,11 +1833,78 @@ void MMCFBlock::CmnIntlz( void )
 /*-------------------------- PRIVATE METHODS -------------------------------*/
 /*--------------------------------------------------------------------------*/
 
+void MMCFBlock::generate_objective( Configuration * objc )
+{
+ if( get_objective() )  // the Objective is there already
+  return;
+
+ // the Objective is all in the sub-Block
+ for( auto blck : v_Block )
+  blck->generate_objective();
+
+ // the MMCFBlock has an Objective of its own nonetheless, with no Variable
+ f_obj.set_function( new LinearFunction() , eNoMod );
+ f_obj.set_sense( f_sense , eNoMod );
+ set_objective( & f_obj , eNoMod );
+
+ }  // end( MMCFBlock::generate_objective )
+
+/*--------------------------------------------------------------------------*/
+
+Solution * MMCFBlock::get_Solution( Configuration * solc , bool emptys )
+{
+ auto sol = new ColVariableSolution;
+ if( ! emptys )
+  sol->read( this );
+ return( sol );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+void MMCFBlock::chg_demands( MF_dbl_sp NDem , Range rng ,
+                             ModParam issueMod , ModParam issueAMod )
+{
+ rng.second = std::min( rng.second , get_NComm() );
+ if( ( rng.second <= rng.first ) || B.empty() )
+  return;
+
+ const bool knap = AR & KnapsackRelaxation;
+ for( Index k = rng.first ; k < rng.second ; ++k ) {
+  auto & Bk = B[ k ];
+  const FNumber dem = get_demand( k );
+  if( dem <= 0 )    // nothing to scale
+   continue;
+
+  const double ratio = NDem[ k - rng.first ] / dem;
+  if( ratio == 1 )
+   continue;
+  for( auto & b : Bk )
+   b *= ratio;
+
+  if( knap ) {  // the flow conservation constraints, if they are there
+   if( ( AR & HasMutual ) && ( FCs.num_elements() ) )
+    for( Index i = 0 ; i < get_NNodes() ; ++i )
+     if( Bk[ i ] != 0 )
+      FCs[ k ][ i ].set_both( Bk[ i ] , issueAMod );
+   }
+  else          // the deficits of the MCFBlock of the commodity
+   if( k < v_Block.size() )
+    static_cast< MCFBlock * >( v_Block[ k ] )->chg_dfcts(
+                         MF_dbl_sp( Bk.data() , Bk.size() ) ,
+                         Range( 0 , get_NNodes() ) , issueMod , issueAMod );
+  }
+ }  // end( MMCFBlock::chg_demands )
+
+/*--------------------------------------------------------------------------*/
+
 void MMCFBlock::guts_of_destructor( void )
 {
  /* clear() all Constraint to ensure that they do not bother to un-register
     themselves from Variable that are going to be deleted anyway. Then
     deletes all the "abstract representation", if any. */
+
+ f_obj.clear();  // the (empty) Objective, which has no Variable anyway
+ reset_objective();
 
  for( auto & cnst : MCs )
   cnst.clear();

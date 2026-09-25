@@ -44,6 +44,12 @@
 
 #include "Objective.h"
 
+#include "FRealObjective.h"
+
+#include "LinearFunction.h"
+
+#include "ColVariableSolution.h"
+
 /*--------------------------------------------------------------------------*/
 /*--------------------------- NAMESPACE ------------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -282,9 +288,27 @@ class MMCFBlock : public Block
   override;
 
 /*--------------------------------------------------------------------------*/
- /*!! not needed yet, the version of Block suffices so far
+ /// generate the Objective of the MMCFBlock
+ /** The Objective is all in the sub-Block, whose generate_objective() is
+  * called; the MMCFBlock has an FRealObjective of its own nonetheless, whose
+  * LinearFunction has no Variable, so that it has an Objective of the same
+  * type as any other Block, which is what, e.g., a LagBFunction whose Block
+  * is the MMCFBlock needs. */
+
  void generate_objective( Configuration * objc = nullptr ) override;
- !!*/
+
+/*--------------------------------------------------------------------------*/
+ /// returns a Solution of the MMCFBlock
+ /** Returns a ColVariableSolution, which saves the values of the Variable
+  * of the MMCFBlock and of those of its sub-Block (one BinaryKnapsackBlock
+  * per arc, or one MCFBlock per commodity) through their abstract
+  * representation, which is enough to reconstruct the flows and the design;
+  * it holds the current values unless \p emptys is true. \p solc is
+  * ignored. This is what, e.g., a LagBFunction whose Block is the
+  * MMCFBlock keeps in its global pool. */
+
+ Solution * get_Solution( Configuration * solc = nullptr ,
+                          bool emptys = true ) override;
 
 /** @} ---------------------------------------------------------------------*/
 /*--------------- METHODS FOR PRINTING & SAVING THE MMCFBlock --------------*/
@@ -330,6 +354,18 @@ class MMCFBlock : public Block
  /// get the number of commodities
 
  Index get_NComm( void ) const { return( NComm ); }
+
+/*--------------------------------------------------------------------------*/
+ /// returns the demand of commodity k, i.e., the sum of its positive deficits
+
+ FNumber get_demand( Index k ) const {
+  FNumber dem = 0;
+  if( k < B.size() )
+   for( auto b : B[ k ] )
+    if( b > 0 )
+     dem += b;
+  return( dem );
+  }
 
 /*--------------------------------------------------------------------------*/
 
@@ -475,6 +511,43 @@ class MMCFBlock : public Block
 
 /*--------------------------------------------------------------------------*/
 
+/*--------------------------------------------------------------------------*/
+ /// change the demands of a contiguous interval of commodities
+ /** Changes the demand of the commodities rng.first + h, for all 0 <= h <
+  * rng.second - rng.first, to *( NDem + h ): the deficits of the nodes of
+  * commodity k are all multiplied by the ratio between its new demand and
+  * its current one, i.e., the sum of its positive deficits, so that where
+  * the demand of the commodity is supplied and delivered does not change
+  * and a single-origin, single-destination commodity (as those of the
+  * Canad instances) gets exactly the new demand. The change is propagated
+  * to the flow conservation constraints if they are there (knapsack
+  * structure, the Modification being issued according to \p issueAMod),
+  * and to the deficits of the MCFBlock of the commodity otherwise (flow
+  * structure, according to \p issueMod). A commodity with no demand is
+  * left alone, since there is nothing to scale. Any rng.second >=
+  * get_NComm() means "up until the end". This is the method a DataMapping
+  * of a StochasticBlock calls to make the demands uncertain. */
+
+ void chg_demands( MF_dbl_sp NDem , Range rng = INFRange ,
+                   ModParam issueMod = eNoBlck ,
+                   ModParam issueAMod = eNoBlck );
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+ /// change the demands of a contiguous interval, iterator form
+ /** As the span form, \p NDem pointing to the first of the new values; its
+  * length is taken from \p rng, restricted to what there is. */
+
+ void chg_demands( MF_dbl_it NDem , Range rng = INFRange ,
+                   ModParam issueMod = eNoBlck ,
+                   ModParam issueAMod = eNoBlck ) {
+  rng.second = std::min( rng.second , get_NComm() );
+  if( rng.second > rng.first )
+   chg_demands( MF_dbl_sp( & * NDem , rng.second - rng.first ) , rng ,
+                issueMod , issueAMod );
+  }
+
+/*--------------------------------------------------------------------------*/
+
 void chg_fixed_costs( int seed , double lambda )
 {
  std::vector< double > Cmean( get_NArcs() );
@@ -614,10 +687,24 @@ void chg_fixed_costs( int seed , double lambda )
 /*--------------------------------------------------------------------------*/
 
  void guts_of_destructor( void );
- 
+
+/*--------------------------------------------------------------------------*/
+ /// registers the methods that change the data into the method factory
+ /** Registers chg_demands() (both the iterator and the span form) into the
+  * method factory, so that a DataMapping can call it by name. */
+
+ static void static_initialization( void ) {
+  register_method< MMCFBlock , MF_dbl_it , Range >(
+   "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
+  register_method< MMCFBlock , MF_dbl_sp , Range >(
+   "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
+  }
+
 /*--------------------------------------------------------------------------*/
 /*---------------------------- PRIVATE FIELDS ------------------------------*/
 /*--------------------------------------------------------------------------*/
+
+ FRealObjective f_obj;  ///< the (empty) Objective of the MMCFBlock
 
  SMSpp_insert_in_factory_h;  // insert it in the Block factory
 

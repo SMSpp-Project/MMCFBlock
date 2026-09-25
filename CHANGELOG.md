@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `chg_demands()`, registered in the method factory so that a `DataMapping`
+  can call it, which changes the demand of a range of commodities by
+  scaling their node deficits, the flow conservation constraints or the
+  deficits of the `MCFBlock` of the commodity following, and `get_demand()`,
+  the demand of a commodity; with them a `TwoStageStochasticBlock` can make
+  the demands uncertain
+
+- the Block has an `FRealObjective` of its own, with no Variable, besides
+  those of its sub-Block, and gives a `ColVariableSolution` as its
+  `Solution`, so that it can be the Block of a `LagBFunction`, e.g., as the
+  scenario of a `TwoStageStochasticBlock` decomposed by a
+  `LagrangianDualSolver`
+
 ### Changed
 
 - whoever links the module keeps it: the classes of a module register
