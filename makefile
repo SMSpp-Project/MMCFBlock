@@ -27,11 +27,13 @@
 
 # macros to be exported - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-MMCFOBJ = $(MMCFSDR)/obj/MMCFBlock.o
+MMCFOBJ = $(MMCFSDR)/obj/MMCFBlock.o \
+	$(MMCFSDR)/obj/MMCFNetworkDesignBlock.o
 
 MMCFINC = -I$(MMCFSDR)/include
 
-MMCFH   = $(MMCFSDR)/include/MMCFBlock.h
+MMCFH   = $(MMCFSDR)/include/MMCFBlock.h \
+	$(MMCFSDR)/include/MMCFNetworkDesignBlock.h
 
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -43,5 +45,12 @@ clean::
 $(MMCFSDR)/obj/MMCFBlock.o: $(MMCFSDR)/src/MMCFBlock.cpp \
 	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
 	$(CC) -c $(MMCFSDR)/src/MMCFBlock.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
+
+$(MMCFSDR)/obj/MMCFNetworkDesignBlock.o: \
+	$(MMCFSDR)/src/MMCFNetworkDesignBlock.cpp \
+	$(MMCFSDR)/include/MMCFNetworkDesignBlock.h \
+	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
+	$(CC) -c $(MMCFSDR)/src/MMCFNetworkDesignBlock.cpp -o $@ $(MMCFINC) \
+	$(SMS++INC) $(SW)
 
 ########################## End of makefile ###################################

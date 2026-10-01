@@ -1261,7 +1261,46 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
       static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
 
   // generate the mutual capacity constraints  - - - - - - - - - - - - - - -
-  // each constraint is an inequality, i.e., RHS = UTot[ j ]
+  // each constraint is an inequality, i.e., RHS = UTot[ j ]; with the design
+  // Variable it is sum_k x^k_j - ubar_j y_j <= 0 on every arc, whatever the
+  // active arcs are [see set_design_variables()]
+  if( v_design ) {
+   MCs.resize( get_NArcs() );
+   for( Index j = 0 ; j < get_NArcs() ; ++j ) {
+    coeffs[ j ].push_back( std::make_pair( & ( *v_design )[ j ] ,
+					   - double( get_design_capacity( j ) )
+					   ) );
+    MCs[ j ].set_rhs( 0 );
+    MCs[ j ].set_lhs( -Inf< double >() );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    }
+
+   // and the forcing ones, x^k_j - ubar^k_j y_j <= 0, for the existing arcs
+   if( AR & slc ) {
+    Index cnt = 0;
+    for( Index k = 0 ; k < get_NComm() ; ++k )
+     for( Index j = 0 ; j < get_NArcs() ; ++j )
+      if( C[ k ][ j ] < Inf< CNumber >() )
+       ++cnt;
+    DCs.resize( cnt );
+    auto dc = DCs.begin();
+    for( Index k = 0 ; k < get_NComm() ; ++k )
+     for( Index j = 0 ; j < get_NArcs() ; ++j )
+      if( C[ k ][ j ] < Inf< CNumber >() ) {
+       LinearFunction::v_coeff_pair p( 2 );
+       p[ 0 ] = std::make_pair(
+	    static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+       p[ 1 ] = std::make_pair( & ( *v_design )[ j ] ,
+				- double( get_design_capacity( k , j ) ) );
+       dc->set_rhs( 0 );
+       dc->set_lhs( -Inf< double >() );
+       dc->set_function( new LinearFunction( std::move( p ) , 0 ) );
+       ++dc;
+       }
+    add_static_constraint( DCs , "Forcing" );
+    }
+   }
+  else
   if( ( NCnst != NArcs ) && Active.size() ) {
    MCs.resize( NCnst );
    for( Index j = 0 ; j < NCnst ; ++j ) {
@@ -1696,8 +1735,7 @@ void MMCFBlock::deserialize( const netCDF::NcGroup & group )
 {
  // erase previous instance, if any- - - - - - - - - - - - - - - - - - - - - -
 
- if( NNodes || NComm || get_NArcs() )
-   MMCFBlock();
+ guts_of_destructor();
 
  // read problem data- - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -1716,9 +1754,8 @@ void MMCFBlock::deserialize( const netCDF::NcGroup & group )
   throw( std::logic_error( "NComm dimension is required" ) );
  NComm = nc.getSize();
  
- Index NCnst = NArcs;
  auto ncnst = group.getDim( "NCnst" );
- if( nc.isNull() )
+ if( ncnst.isNull() )
   throw( std::logic_error( "NCnst dimension is required" ) );
  NCnst = ncnst.getSize();
  
@@ -1815,7 +1852,8 @@ void MMCFBlock::CmnIntlz( void )
   NamesK[ k + 1 ] = NamesK[ k ] + cnt;
 
   if( cnt < NArcs ) {
-   ActiveK[ k ].resize( cnt + 1 );
+   ActiveK[ k ].clear();
+   ActiveK[ k ].reserve( cnt + 1 );
    for( i = 0 ; i < NArcs ; i++ )
     if( ( C[ k ][ i ] < Inf< CNumber >() ) &&
 	( U[ k ][ i ] < Inf< FNumber >() ) )
@@ -1897,6 +1935,137 @@ void MMCFBlock::chg_demands( MF_dbl_sp NDem , Range rng ,
 
 /*--------------------------------------------------------------------------*/
 
+void MMCFBlock::set_design_variables( std::vector< ColVariable > * DV )
+{
+ static const std::string _prfx = "MMCFBlock::set_design_variables: ";
+
+ if( AR & HasMutual )
+  throw( std::logic_error( _prfx + "the constraints have been generated "
+			   "already" ) );
+ if( AR & KnapsackRelaxation )
+  throw( std::logic_error( _prfx + "only the flow structure has design "
+			   "Variable" ) );
+ if( DV && ( DV->size() != get_NArcs() ) )
+  throw( std::invalid_argument( _prfx + "one design Variable per arc is "
+				"needed" ) );
+
+ v_design = DV;
+ }
+
+/*--------------------------------------------------------------------------*/
+
+FNumber MMCFBlock::get_design_capacity( Index j ) const
+{
+ if( UTot[ j ] < Inf< FNumber >() )
+  return( UTot[ j ] );
+
+ FNumber dem = 0;  // no flow exceeds the total demand
+ for( Index k = 0 ; k < get_NComm() ; ++k )
+  if( C[ k ][ j ] < Inf< CNumber >() )
+   dem += get_demand( k );
+ return( dem );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+FNumber MMCFBlock::get_design_capacity( Index k , Index j ) const
+{
+ return( std::min( { U[ k ][ j ] , get_design_capacity( j ) ,
+		     get_demand( k ) } ) );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+FRowConstraint * MMCFBlock::get_mutual_constraint( Index j )
+{
+ if( ( ! ( AR & HasMutual ) ) || ( AR & KnapsackRelaxation ) ||
+     ( j >= get_NArcs() ) )
+  return( nullptr );
+
+ if( v_design || ( ! ( ( NCnst != NArcs ) && Active.size() ) ) )
+  return( j < MCs.size() ? & MCs[ j ] : nullptr );
+
+ // only the active arcs have one, in the order of Active
+ const auto end = Active.begin() + NCnst;
+ const auto it = std::lower_bound( Active.begin() , end , j );
+ if( ( it == end ) || ( *it != j ) )
+  return( nullptr );
+ return( & MCs[ it - Active.begin() ] );
+ }
+
+/*--------------------------------------------------------------------------*/
+
+MMCFBlock * MMCFBlock::get_slack_copy( double scale ) const
+{
+ // the slack arcs: for each commodity, one per origin and destination
+ struct Slack { Index k , o , d; FNumber u; };
+ std::vector< Slack > sl;
+ for( Index k = 0 ; k < get_NComm() ; ++k )
+  for( Index o = 0 ; o < get_NNodes() ; ++o )
+   if( B[ k ][ o ] > 0 )      // an origin (MMCFBlock convention)
+    for( Index d = 0 ; d < get_NNodes() ; ++d )
+     if( B[ k ][ d ] < 0 )    // a destination
+      sl.push_back( { k , o , d , std::min( B[ k ][ o ] , - B[ k ][ d ] ) } );
+
+ auto cp = new MMCFBlock();
+ cp->f_sense = f_sense;
+ cp->NXtrV = cp->NXtrC = 0;
+ cp->NNodes = NNodes;
+ cp->NComm = NComm;
+ cp->NArcs = NArcs + sl.size();
+
+ cp->Startn = Startn;
+ cp->Endn = Endn;
+ cp->UTot = UTot;
+ cp->F = F;
+ cp->F.resize( cp->NArcs , 0 );
+ cp->B = B;
+ cp->C.resize( NComm );
+ cp->U.resize( NComm );
+ for( Index k = 0 ; k < NComm ; ++k ) {
+  cp->C[ k ] = C[ k ];
+  cp->C[ k ].resize( cp->NArcs , Inf< CNumber >() );
+  cp->U[ k ].resize( cp->NArcs , 0 );
+  for( Index j = 0 ; j < NArcs ; ++j )
+   cp->U[ k ][ j ] = get_design_capacity( k , j );
+  }
+
+ // the cost of the slack arcs of k: scale times n - 1 times its largest cost
+ for( Index h = 0 ; h < sl.size() ; ++h ) {
+  const auto & s = sl[ h ];
+  CNumber cmax = 1;
+  for( Index j = 0 ; j < NArcs ; ++j )
+   if( C[ s.k ][ j ] < Inf< CNumber >() )
+    cmax = std::max( cmax , CNumber( std::abs( C[ s.k ][ j ] ) ) );
+  const Index a = NArcs + h;
+  cp->Startn.push_back( s.o + 1 );  // node names start from 1
+  cp->Endn.push_back( s.d + 1 );
+  cp->UTot.push_back( Inf< FNumber >() );
+  cp->C[ s.k ][ a ] = scale * ( NNodes - 1 ) * cmax;
+  cp->U[ s.k ][ a ] = s.u;
+  }
+
+ // the arcs with a mutual capacity constraint: the original ones with a
+ // finite UTot, in increasing order and terminated by Inf
+ cp->Active.clear();
+ for( Index j = 0 ; j < NArcs ; ++j )
+  if( UTot[ j ] < Inf< FNumber >() )
+   cp->Active.push_back( j );
+ cp->NCnst = cp->Active.size();
+ cp->Active.push_back( Inf< Index >() );
+
+ if( ! I.empty() ) {
+  cp->I = I;
+  for( auto & ik : cp->I )
+   ik.resize( cp->NArcs , 0 );
+  }
+
+ cp->CmnIntlz();
+ return( cp );
+ }
+
+/*--------------------------------------------------------------------------*/
+
 void MMCFBlock::guts_of_destructor( void )
 {
  /* clear() all Constraint to ensure that they do not bother to un-register
@@ -1919,7 +2088,12 @@ void MMCFBlock::guts_of_destructor( void )
    it->clear();
   }
 
+ for( auto & cnst : DCs )
+  cnst.clear();
+
  MCs.clear();
+ DCs.clear();
+ v_design = nullptr;
  FCs.resize( boost::extents[ 0 ][ 0 ] );
  SLCs.resize( boost::extents[ 0 ][ 0 ] );
 

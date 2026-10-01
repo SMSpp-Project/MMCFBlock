@@ -493,6 +493,86 @@ class MMCFBlock : public Block
 
 
 /*--------------------------------------------------------------------------*/
+ /// the data of the instance, as they have been loaded
+
+ [[nodiscard]] const CMultiVector & get_C( void ) const { return( C ); }
+
+ [[nodiscard]] const FMultiVector & get_U( void ) const { return( U ); }
+
+ [[nodiscard]] const FMultiVector & get_B( void ) const { return( B ); }
+
+ [[nodiscard]] const Vec_FNumber & get_UTot( void ) const { return( UTot ); }
+
+ [[nodiscard]] const Vec_CNumber & get_F( void ) const { return( F ); }
+
+ [[nodiscard]] c_Subset & get_Startn( void ) const { return( Startn ); }
+
+ [[nodiscard]] c_Subset & get_Endn( void ) const { return( Endn ); }
+
+/*--------------------------------------------------------------------------*/
+ /// the mutual capacity constraint of an arc, nullptr if it has none
+ /** Returns the mutual capacity constraint of arc j of the flow structure,
+  * or nullptr if the arc has none (i.e., it is not among the active ones,
+  * as for the slack arcs of get_slack_copy()) or if the constraints have not
+  * been generated yet. */
+
+ [[nodiscard]] FRowConstraint * get_mutual_constraint( Index j );
+
+/*--------------------------------------------------------------------------*/
+ /// the design Variable of the arcs, in the flow structure
+ /** Tells the MMCFBlock that arc j can only be used if the Variable
+  * ( *DV )[ j ] is (nonzero, i.e.) 1, DV having one Variable per arc. The
+  * Variable belong to another Block, typically a MMCFNetworkDesignBlock
+  * that has the MMCFBlock as a sub-Block, as DesignNetworkBlock does with
+  * DCNetworkBlock. Then, the mutual capacity constraint of arc j is
+  * \f[
+  *  \sum_{ k } x^k_j - \bar{u}_j y_j \leq 0 \;,
+  * \f]
+  * \f$ \bar{u}_j \f$ being UTot_j, or the total demand if UTot_j is
+  * infinite, and if the strong forcing constraints are asked for [see
+  * generate_abstract_constraints()] also
+  * \f[
+  *  x^k_j - \bar{u}^k_j y_j \leq 0 \;,
+  * \f]
+  * for each commodity k for which the arc exists, \f$ \bar{u}^k_j \f$
+  * being the smallest among the individual capacity u^k_j, \f$ \bar{u}_j
+  * \f$ and the demand of k (the group "Forcing"). It must be called before
+  * the constraints are generated, and only with the flow structure;
+  * nullptr means that there are no design Variable. */
+
+ void set_design_variables( std::vector< ColVariable > * DV );
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the coefficient of y_j in the mutual capacity constraint of arc j
+
+ [[nodiscard]] FNumber get_design_capacity( Index j ) const;
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the coefficient of y_j in the forcing constraint of arc j for k
+
+ [[nodiscard]] FNumber get_design_capacity( Index k , Index j ) const;
+
+/*--------------------------------------------------------------------------*/
+ /// a copy of the instance with a slack arc per origin and destination
+ /** Returns a new MMCFBlock with the same data, plus, for each commodity k
+  * and each pair of an origin o (a node with positive deficit in the
+  * MMCFBlock convention) and a destination d of k, a "slack" arc from o to
+  * d which only k can use, with capacity the smaller of the two deficits
+  * and cost \p scale times the cost of the costliest simple path of k
+  * (n - 1 times its largest arc cost), and no mutual capacity constraint.
+  * Hence, the copy has a feasible flow whatever capacities its other arcs
+  * are given, and the slack arcs are only used if the original arcs cannot
+  * carry the demand. The infinite individual capacities of the original arcs
+  * are replaced by the smaller of the demand and UTot_j, which no feasible
+  * flow exceeds, so that all the capacities of the copy are finite. The
+  * mutual capacity constraints of the copy are those of the original arcs
+  * with finite UTot_j (all of them for the Canad instances), the slack arcs
+  * being the first ones after them. The copy has no father, no design
+  * Variable and no abstract representation; the caller owns it. */
+
+ [[nodiscard]] MMCFBlock * get_slack_copy( double scale ) const;
+
+/*--------------------------------------------------------------------------*/
 
  void load_nc4( std::string & filename ) {
   netCDF::NcFile f( filename, netCDF::NcFile::read );
@@ -631,17 +711,17 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
  
- Index NXtrV;          ///< Number of "extra" variables
- Index NXtrC;          ///< Number of "extra" constraints
+ Index NXtrV = 0;      ///< Number of "extra" variables
+ Index NXtrC = 0;      ///< Number of "extra" constraints
 
  Subset IdxBeg;        ///< Description of "extra" constraints: start
  Subset CoefIdx;       ///< Description of "extra" constraints: indices
  Vec_CNumber CoefVal;  ///< Description of "extra" constraints: values
 
- Index NNodes;         ///< Number of nodes
- Index NArcs;          ///< Number of arcs
- Index NComm;          ///< Number of commodities
- Index NCnst;          ///< Number of arcs with mutual capacity constraints
+ Index NNodes = 0;     ///< Number of nodes
+ Index NArcs = 0;      ///< Number of arcs
+ Index NComm = 0;      ///< Number of commodities
+ Index NCnst = 0;      ///< Number of arcs with mutual capacity constraints
 
  CMultiVector C;       ///< Matrix of the arc costs
  FMultiVector U;       ///< Matrix of the arc upper capacities
@@ -670,6 +750,12 @@ void chg_fixed_costs( int seed , double lambda )
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
 
  std::vector< FRowConstraint > MCs;  ///< the static mutual capacity constrs
+
+ /// the design Variable of the arcs [see set_design_variables()]
+ std::vector< ColVariable > * v_design = nullptr;
+
+ /// the forcing constraints of the design [see set_design_variables()]
+ std::vector< FRowConstraint > DCs;
  boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
  boost::multi_array< FRowConstraint , 2 > SLCs;
  ///< the static strong forcing constrs

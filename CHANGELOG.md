@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `MMCFNetworkDesignBlock`, the multicommodity network design problem on an
+  `MMCFBlock`, either monolithic (the `MMCFBlock` as a sub-Block with binary
+  design variables) or in Benders form (the design variables, the value
+  variable and its cuts, the flows being a sub-Block solved by the Solver of
+  its `BlockSolverConfig`, from which the Benders cut of a design is
+  computed by weak duality)
+
+- `MMCFBlock::set_design_variables()`, which makes the mutual capacity
+  constraints read `sum_k x^k_j <= u_j y_j` with the given variables (and,
+  if asked, the forcing constraints `x^k_j <= u^k_j y_j`, `u^k_j` being the
+  smallest among the individual capacity, `u_j` and the demand of `k`), and
+  the getters of the data (`get_C()`, `get_U()`, `get_UTot()`, `get_B()`,
+  `get_F()`, `get_Startn()`, `get_Endn()`), of the capacity of a design and
+  of the copy of the Block with the capacities scaled
+
 - `chg_demands()`, registered in the method factory so that a `DataMapping`
   can call it, which changes the demand of a range of commodities by
   scaling their node deficits, the flow conservation constraints or the
@@ -31,6 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and on ELF, where naming the symbol is not enough, the library as a whole
 
 ### Fixed
+
+- `MMCFBlock::deserialize()` on a Block already loaded destroys the old data
+  in place instead of through a temporary, checks the number of mutual
+  constraints, and keeps it in the member; the common initialization clears
+  the vectors before filling them, and the scalar members start at 0
 
 - on macOS a program linking the module lost the classes the module
   registers in the factories when the linker dropped the library, as it
