@@ -44,6 +44,12 @@
 
 #include "Objective.h"
 
+#include "FRealObjective.h"
+
+#include "LinearFunction.h"
+
+#include "ColVariableSolution.h"
+
 /*--------------------------------------------------------------------------*/
 /*--------------------------- NAMESPACE ------------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -282,9 +288,27 @@ class MMCFBlock : public Block
   override;
 
 /*--------------------------------------------------------------------------*/
- /*!! not needed yet, the version of Block suffices so far
+ /// generate the Objective of the MMCFBlock
+ /** The Objective is all in the sub-Block, whose generate_objective() is
+  * called; the MMCFBlock has an FRealObjective of its own nonetheless, whose
+  * LinearFunction has no Variable, so that it has an Objective of the same
+  * type as any other Block, which is what, e.g., a LagBFunction whose Block
+  * is the MMCFBlock needs. */
+
  void generate_objective( Configuration * objc = nullptr ) override;
- !!*/
+
+/*--------------------------------------------------------------------------*/
+ /// returns a Solution of the MMCFBlock
+ /** Returns a ColVariableSolution, which saves the values of the Variable
+  * of the MMCFBlock and of those of its sub-Block (one BinaryKnapsackBlock
+  * per arc, or one MCFBlock per commodity) through their abstract
+  * representation, which is enough to reconstruct the flows and the design;
+  * it holds the current values unless \p emptys is true. \p solc is
+  * ignored. This is what, e.g., a LagBFunction whose Block is the
+  * MMCFBlock keeps in its global pool. */
+
+ Solution * get_Solution( Configuration * solc = nullptr ,
+                          bool emptys = true ) override;
 
 /** @} ---------------------------------------------------------------------*/
 /*--------------- METHODS FOR PRINTING & SAVING THE MMCFBlock --------------*/
@@ -330,6 +354,18 @@ class MMCFBlock : public Block
  /// get the number of commodities
 
  Index get_NComm( void ) const { return( NComm ); }
+
+/*--------------------------------------------------------------------------*/
+ /// returns the demand of commodity k, i.e., the sum of its positive deficits
+
+ FNumber get_demand( Index k ) const {
+  FNumber dem = 0;
+  if( k < B.size() )
+   for( auto b : B[ k ] )
+    if( b > 0 )
+     dem += b;
+  return( dem );
+  }
 
 /*--------------------------------------------------------------------------*/
 
@@ -457,6 +493,86 @@ class MMCFBlock : public Block
 
 
 /*--------------------------------------------------------------------------*/
+ /// the data of the instance, as they have been loaded
+
+ [[nodiscard]] const CMultiVector & get_C( void ) const { return( C ); }
+
+ [[nodiscard]] const FMultiVector & get_U( void ) const { return( U ); }
+
+ [[nodiscard]] const FMultiVector & get_B( void ) const { return( B ); }
+
+ [[nodiscard]] const Vec_FNumber & get_UTot( void ) const { return( UTot ); }
+
+ [[nodiscard]] const Vec_CNumber & get_F( void ) const { return( F ); }
+
+ [[nodiscard]] c_Subset & get_Startn( void ) const { return( Startn ); }
+
+ [[nodiscard]] c_Subset & get_Endn( void ) const { return( Endn ); }
+
+/*--------------------------------------------------------------------------*/
+ /// the mutual capacity constraint of an arc, nullptr if it has none
+ /** Returns the mutual capacity constraint of arc j of the flow structure,
+  * or nullptr if the arc has none (i.e., it is not among the active ones,
+  * as for the slack arcs of get_slack_copy()) or if the constraints have not
+  * been generated yet. */
+
+ [[nodiscard]] FRowConstraint * get_mutual_constraint( Index j );
+
+/*--------------------------------------------------------------------------*/
+ /// the design Variable of the arcs, in the flow structure
+ /** Tells the MMCFBlock that arc j can only be used if the Variable
+  * ( *DV )[ j ] is (nonzero, i.e.) 1, DV having one Variable per arc. The
+  * Variable belong to another Block, typically a MMCFNetworkDesignBlock
+  * that has the MMCFBlock as a sub-Block, as DesignNetworkBlock does with
+  * DCNetworkBlock. Then, the mutual capacity constraint of arc j is
+  * \f[
+  *  \sum_{ k } x^k_j - \bar{u}_j y_j \leq 0 \;,
+  * \f]
+  * \f$ \bar{u}_j \f$ being UTot_j, or the total demand if UTot_j is
+  * infinite, and if the strong forcing constraints are asked for [see
+  * generate_abstract_constraints()] also
+  * \f[
+  *  x^k_j - \bar{u}^k_j y_j \leq 0 \;,
+  * \f]
+  * for each commodity k for which the arc exists, \f$ \bar{u}^k_j \f$
+  * being the smallest among the individual capacity u^k_j, \f$ \bar{u}_j
+  * \f$ and the demand of k (the group "Forcing"). It must be called before
+  * the constraints are generated, and only with the flow structure;
+  * nullptr means that there are no design Variable. */
+
+ void set_design_variables( std::vector< ColVariable > * DV );
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the coefficient of y_j in the mutual capacity constraint of arc j
+
+ [[nodiscard]] FNumber get_design_capacity( Index j ) const;
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// the coefficient of y_j in the forcing constraint of arc j for k
+
+ [[nodiscard]] FNumber get_design_capacity( Index k , Index j ) const;
+
+/*--------------------------------------------------------------------------*/
+ /// a copy of the instance with a slack arc per origin and destination
+ /** Returns a new MMCFBlock with the same data, plus, for each commodity k
+  * and each pair of an origin o (a node with positive deficit in the
+  * MMCFBlock convention) and a destination d of k, a "slack" arc from o to
+  * d which only k can use, with capacity the smaller of the two deficits
+  * and cost \p scale times the cost of the costliest simple path of k
+  * (n - 1 times its largest arc cost), and no mutual capacity constraint.
+  * Hence, the copy has a feasible flow whatever capacities its other arcs
+  * are given, and the slack arcs are only used if the original arcs cannot
+  * carry the demand. The infinite individual capacities of the original arcs
+  * are replaced by the smaller of the demand and UTot_j, which no feasible
+  * flow exceeds, so that all the capacities of the copy are finite. The
+  * mutual capacity constraints of the copy are those of the original arcs
+  * with finite UTot_j (all of them for the Canad instances), the slack arcs
+  * being the first ones after them. The copy has no father, no design
+  * Variable and no abstract representation; the caller owns it. */
+
+ [[nodiscard]] MMCFBlock * get_slack_copy( double scale ) const;
+
+/*--------------------------------------------------------------------------*/
 
  void load_nc4( std::string & filename ) {
   netCDF::NcFile f( filename, netCDF::NcFile::read );
@@ -471,6 +587,43 @@ class MMCFBlock : public Block
   deserialize( bg );
   
   CmnIntlz();
+  }
+
+/*--------------------------------------------------------------------------*/
+
+/*--------------------------------------------------------------------------*/
+ /// change the demands of a contiguous interval of commodities
+ /** Changes the demand of the commodities rng.first + h, for all 0 <= h <
+  * rng.second - rng.first, to *( NDem + h ): the deficits of the nodes of
+  * commodity k are all multiplied by the ratio between its new demand and
+  * its current one, i.e., the sum of its positive deficits, so that where
+  * the demand of the commodity is supplied and delivered does not change
+  * and a single-origin, single-destination commodity (as those of the
+  * Canad instances) gets exactly the new demand. The change is propagated
+  * to the flow conservation constraints if they are there (knapsack
+  * structure, the Modification being issued according to \p issueAMod),
+  * and to the deficits of the MCFBlock of the commodity otherwise (flow
+  * structure, according to \p issueMod). A commodity with no demand is
+  * left alone, since there is nothing to scale. Any rng.second >=
+  * get_NComm() means "up until the end". This is the method a DataMapping
+  * of a StochasticBlock calls to make the demands uncertain. */
+
+ void chg_demands( MF_dbl_sp NDem , Range rng = INFRange ,
+                   ModParam issueMod = eNoBlck ,
+                   ModParam issueAMod = eNoBlck );
+
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+ /// change the demands of a contiguous interval, iterator form
+ /** As the span form, \p NDem pointing to the first of the new values; its
+  * length is taken from \p rng, restricted to what there is. */
+
+ void chg_demands( MF_dbl_it NDem , Range rng = INFRange ,
+                   ModParam issueMod = eNoBlck ,
+                   ModParam issueAMod = eNoBlck ) {
+  rng.second = std::min( rng.second , get_NComm() );
+  if( rng.second > rng.first )
+   chg_demands( MF_dbl_sp( & * NDem , rng.second - rng.first ) , rng ,
+                issueMod , issueAMod );
   }
 
 /*--------------------------------------------------------------------------*/
@@ -558,17 +711,17 @@ void chg_fixed_costs( int seed , double lambda )
  static constexpr unsigned char slc = 8;
  ///< fourth bit of AR == 1: true if we use the strong forcing constraints
  
- Index NXtrV;          ///< Number of "extra" variables
- Index NXtrC;          ///< Number of "extra" constraints
+ Index NXtrV = 0;      ///< Number of "extra" variables
+ Index NXtrC = 0;      ///< Number of "extra" constraints
 
  Subset IdxBeg;        ///< Description of "extra" constraints: start
  Subset CoefIdx;       ///< Description of "extra" constraints: indices
  Vec_CNumber CoefVal;  ///< Description of "extra" constraints: values
 
- Index NNodes;         ///< Number of nodes
- Index NArcs;          ///< Number of arcs
- Index NComm;          ///< Number of commodities
- Index NCnst;          ///< Number of arcs with mutual capacity constraints
+ Index NNodes = 0;     ///< Number of nodes
+ Index NArcs = 0;      ///< Number of arcs
+ Index NComm = 0;      ///< Number of commodities
+ Index NCnst = 0;      ///< Number of arcs with mutual capacity constraints
 
  CMultiVector C;       ///< Matrix of the arc costs
  FMultiVector U;       ///< Matrix of the arc upper capacities
@@ -597,6 +750,12 @@ void chg_fixed_costs( int seed , double lambda )
  Vec_Bool BIsCpy;     ///< true for each row of B[] that is a copy of another
 
  std::vector< FRowConstraint > MCs;  ///< the static mutual capacity constrs
+
+ /// the design Variable of the arcs [see set_design_variables()]
+ std::vector< ColVariable > * v_design = nullptr;
+
+ /// the forcing constraints of the design [see set_design_variables()]
+ std::vector< FRowConstraint > DCs;
  boost::multi_array< FRowConstraint , 2 > FCs;  ///< the static flow constrs
  boost::multi_array< FRowConstraint , 2 > SLCs;
  ///< the static strong forcing constrs
@@ -614,10 +773,24 @@ void chg_fixed_costs( int seed , double lambda )
 /*--------------------------------------------------------------------------*/
 
  void guts_of_destructor( void );
- 
+
+/*--------------------------------------------------------------------------*/
+ /// registers the methods that change the data into the method factory
+ /** Registers chg_demands() (both the iterator and the span form) into the
+  * method factory, so that a DataMapping can call it by name. */
+
+ static void static_initialization( void ) {
+  register_method< MMCFBlock , MF_dbl_it , Range >(
+   "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
+  register_method< MMCFBlock , MF_dbl_sp , Range >(
+   "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
+  }
+
 /*--------------------------------------------------------------------------*/
 /*---------------------------- PRIVATE FIELDS ------------------------------*/
 /*--------------------------------------------------------------------------*/
+
+ FRealObjective f_obj;  ///< the (empty) Objective of the MMCFBlock
 
  SMSpp_insert_in_factory_h;  // insert it in the Block factory
 
