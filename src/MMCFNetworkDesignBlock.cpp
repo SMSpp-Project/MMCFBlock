@@ -425,9 +425,7 @@ Solution * MMCFNetworkDesignBlock::get_Solution( Configuration * solc ,
 
 void MMCFNetworkDesignBlock::guts_of_destructor( void )
 {
- for( auto & c : v_cuts )
-  c.clear();
- v_cuts.clear();
+ Constraint::clear( v_cuts );
  f_obj.clear();
  reset_objective();
 

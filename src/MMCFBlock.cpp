@@ -2075,27 +2075,12 @@ void MMCFBlock::guts_of_destructor( void )
  f_obj.clear();  // the (empty) Objective, which has no Variable anyway
  reset_objective();
 
- for( auto & cnst : MCs )
-  cnst.clear();
- {
-  const auto sup = FCs.data() + FCs.num_elements();
-  for( auto it = FCs.data() ; it != sup ; ++it )
-   it->clear();
-  }
- {
-  const auto sup = SLCs.data() + SLCs.num_elements();
-  for( auto it = SLCs.data() ; it != sup ; ++it )
-   it->clear();
-  }
+ Constraint::clear( MCs );
+ Constraint::clear( FCs );
+ Constraint::clear( SLCs );
+ Constraint::clear( DCs );
 
- for( auto & cnst : DCs )
-  cnst.clear();
-
- MCs.clear();
- DCs.clear();
  v_design = nullptr;
- FCs.resize( boost::extents[ 0 ][ 0 ] );
- SLCs.resize( boost::extents[ 0 ][ 0 ] );
 
  for( auto bk : v_Block )
   delete bk;
