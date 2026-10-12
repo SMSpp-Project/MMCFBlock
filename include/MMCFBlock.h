@@ -86,7 +86,7 @@ namespace SMSpp_di_unipi_it
  *  @{ */
 
 /*--------------------------------------------------------------------------*/
-/*-------------------------- CLASS MMCFBlock ------------------------------*/
+/*-------------------------- CLASS MMCFBlock -------------------------------*/
 /*--------------------------------------------------------------------------*/
 /*--------------------------- GENERAL NOTES --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -380,7 +380,7 @@ class MMCFBlock : public Block
   return( f_sense );
   }
   
-  /*--------------------------------------------------------------------------*/
+  /*------------------------------------------------------------------------*/
 
 
  /// get the flow of a given arc for a given commodity 
@@ -542,12 +542,12 @@ class MMCFBlock : public Block
 
  void set_design_variables( std::vector< ColVariable > * DV );
 
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the coefficient of y_j in the mutual capacity constraint of arc j
 
  [[nodiscard]] FNumber get_design_capacity( Index j ) const;
 
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the coefficient of y_j in the forcing constraint of arc j for k
 
  [[nodiscard]] FNumber get_design_capacity( Index k , Index j ) const;
@@ -800,7 +800,7 @@ void chg_fixed_costs( int seed , double lambda )
 
 /*--------------------------------------------------------------------------*/
 
-/*@}  end( group( MMCFBlock_CLASSES ) ) -----------------------------------*/
+/*@}  end( group( MMCFBlock_CLASSES ) ) ------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
  }  // end( namespace SMSpp_di_unipi_it )
