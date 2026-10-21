@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- the C++20 module `smspp.mmcfblock` (`src/MMCFBlock.cppm`), which exports
+  every name that the headers declare at namespace scope and re-exports
+  `smspp.binaryknapsackblock` and `smspp.mcfblock`, so that a source file
+  can write `import smspp.mmcfblock;` in place of the `#include` of the
+  headers; it is built with the CMake option `SMSpp_BUILD_MODULE`, as the
+  target `SMS++::MMCFBlock_module`
+
 ## [0.5.0] - 2026-10-09
 
 ### Added
