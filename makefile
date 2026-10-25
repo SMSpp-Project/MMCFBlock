@@ -35,6 +35,12 @@ MMCFINC = -I$(MMCFSDR)/include
 MMCFH   = $(MMCFSDR)/include/MMCFBlock.h \
 	$(MMCFSDR)/include/MMCFNetworkDesignBlock.h
 
+# the C++20 module smspp.mmcfblock - - - - - - - - - - - - - - - - - - - - -
+# [see makefile-mod of SMS++]
+
+$(eval $(call SMSppMODrule,MMCF,$(MMCFSDR),MMCFBlock,smspp.mmcfblock,\
+	$(BKBkMOD) $(MCFBkMOD)))
+
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 clean::
