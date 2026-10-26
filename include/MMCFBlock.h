@@ -387,8 +387,8 @@ class MMCFBlock : public Block
  /** Given a commodity index k and an arc index ij, this function provides
   * the value of the associated variable x^k_ij. In the case of the knapsack
   * relaxation, the variables of the block are rescaled in such a way that
-  * x \in [ 0 , 1 ]. In this case the functions get_flow provide the values
-  * already rescaled wigth x^k_{ij} in [ 0 , u_ij ]. */
+  * \f$ x \in [ 0 , 1 ] \f$. In this case the functions get_flow provide the
+  * values already rescaled with \f$ x^k_{ij} \in [ 0 , u_{ij} ] \f$. */
 
  double get_flow( Index k , Index i ) const {
   if( ! ( AR & HasVar ) )
@@ -690,8 +690,9 @@ void chg_fixed_costs( int seed , double lambda )
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
  static constexpr unsigned char KnapsackRelaxation = 4;
- /**< third bit of AR == 1
-   * - [1]: the standard knapsack formulation in which get_NArcs()
+ /**< third bit of AR == 1:
+  *
+  * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
   *   and the flow constraints are handled in the father MMCFBlock;
   *
