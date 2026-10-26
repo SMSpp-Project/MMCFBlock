@@ -22,12 +22,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- the pipeline builds the module also with its makefiles, after CMake, and
+  runs on a change of the makefiles too [see `ci/makefile` of the umbrella]
+
 - `SMSpp_BUILD_MODULE` no longer stops the configuration when the C++20
   module cannot be built, i.e., with a CMake older than 3.28, a generator
   other than Ninja or Visual Studio, a compiler other than Clang 16 (with
   `clang-scan-deps`) or MSVC 19.34, or a module it imports that is not
   there: the option is turned off with a warning that says why, and the
   build goes on with the headers [see `cmake/CheckModule.cmake` of SMS++]
+
+### Fixed
+
+- `makefile` compiles with the -I of MCFBlock and BinaryKnapsackBlock,
+  which it takes in input as the other basic makefiles do: it relied on
+  `makefile-s` adding them to `MMCFINC` afterwards, so that whoever
+  included it with MCFBlock and BinaryKnapsackBlock already there (e.g.,
+  next to CapacitatedFacilityLocationBlock) did not compile
 
 
 ## [0.5.0] - 2026-10-09
