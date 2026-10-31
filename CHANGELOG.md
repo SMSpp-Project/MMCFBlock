@@ -34,6 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- with the compilers of MinGW (MSYS2) the target asks whoever links it
+  for the symbol that forces the module in, as with MSVC and on macOS:
+  the linker imports a DLL only for the symbols asked for, so that a
+  program that used none had the module left out and its classes
+  missing from the factory
+
 - `makefile` compiles with the -I of MCFBlock and BinaryKnapsackBlock,
   which it takes in input as the other basic makefiles do: it relied on
   `makefile-s` adding them to `MMCFINC` afterwards, so that whoever
