@@ -1906,6 +1906,10 @@ void MMCFBlock::chg_demands( MF_dbl_sp NDem , Range rng ,
  if( ( rng.second <= rng.first ) || B.empty() )
   return;
 
+ if( NDem.size() < rng.second - rng.first )
+  throw( std::invalid_argument( "MMCFBlock::chg_demands: the span is shorter "
+                                "than the Range" ) );
+
  const bool knap = AR & KnapsackRelaxation;
  for( Index k = rng.first ; k < rng.second ; ++k ) {
   auto & Bk = B[ k ];

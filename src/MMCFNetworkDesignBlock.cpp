@@ -279,7 +279,7 @@ void MMCFNetworkDesignBlock::set_subproblem_capacities(
     nu.push_back( U[ k ][ j ] * y[ j ] );
     }
   if( ! nms.empty() )
-   mk->chg_ucaps( nu.cbegin() , std::move( nms ) , true );
+   mk->chg_ucaps( MF_dbl_sp( nu ) , std::move( nms ) , true );
   }
 
  v_ylast = y;

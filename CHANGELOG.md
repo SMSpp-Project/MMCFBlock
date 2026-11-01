@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   there: the option is turned off with a warning that says why, and the
   build goes on with the headers [see `cmake/CheckModule.cmake` of SMS++]
 
+### Removed
+
+- the form of `chg_demands()` taking an iterator, and its registration in
+  the methods factory: the span form checks its length against the Range,
+  throwing `std::invalid_argument` if it is shorter
+
 ### Fixed
 
 - with the compilers of MinGW (MSYS2) the target asks whoever links it
