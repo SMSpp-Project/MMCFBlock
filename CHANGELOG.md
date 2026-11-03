@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-03
+
 ### Added
 
 - the makefiles build the C++20 module `smspp.mmcfblock` when `SMSppMOD` is
@@ -55,7 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `makefile-s` adding them to `MMCFINC` afterwards, so that whoever
   included it with MCFBlock and BinaryKnapsackBlock already there (e.g.,
   next to CapacitatedFacilityLocationBlock) did not compile
-
 
 ## [0.5.0] - 2026-10-09
 
@@ -169,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First test release.
 
-[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.5.0...develop
+[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.6.0...develop
+[0.6.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.5.0...0.6.0
 [0.5.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.4.0...0.5.0
 [0.4.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.1...0.4.0
 [0.3.1]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.0...0.3.1
