@@ -12,6 +12,10 @@
 #           $(SW)       = compiler options                                   #
 #           $(SMS++INC) = the -I$( core SMS++ directory )                    #
 #           $(SMS++OBJ) = the libSMS++ library itself                        #
+#           $(MCFBkINC) = the -I$( MCFBlock directory )                      #
+#           $(MCFBkH)   = the .h files of MCFBlock                           #
+#           $(BKBkINC)  = the -I$( BinaryKnapsackBlock directory )           #
+#           $(BKBkH)    = the .h files of BinaryKnapsackBlock                #
 #           $(MMCFSDR)  = the directory where the source is                  #
 #                                                                            #
 #   Output: $(MMCFOBJ)  = the final object(s) / library                      #
@@ -35,6 +39,12 @@ MMCFINC = -I$(MMCFSDR)/include
 MMCFH   = $(MMCFSDR)/include/MMCFBlock.h \
 	$(MMCFSDR)/include/MMCFNetworkDesignBlock.h
 
+# the C++20 module smspp.mmcfblock - - - - - - - - - - - - - - - - - - - - -
+# [see makefile-mod of SMS++]
+
+$(eval $(call SMSppMODrule,MMCF,$(MMCFSDR),MMCFBlock,smspp.mmcfblock,\
+	BKBk MCFBk))
+
 # clean - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 clean::
@@ -43,14 +53,15 @@ clean::
 # dependencies: every .o from its .cpp + every recursively included .h- - - -
 
 $(MMCFSDR)/obj/MMCFBlock.o: $(MMCFSDR)/src/MMCFBlock.cpp \
-	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
-	$(CC) -c $(MMCFSDR)/src/MMCFBlock.cpp -o $@ $(MMCFINC) $(SMS++INC) $(SW)
+	$(MMCFSDR)/include/MMCFBlock.h $(MCFBkH) $(BKBkH) $(SMS++OBJ)
+	$(CC) -c $(MMCFSDR)/src/MMCFBlock.cpp -o $@ $(MMCFINC) $(MCFBkINC) \
+	$(BKBkINC) $(SMS++INC) $(SW)
 
 $(MMCFSDR)/obj/MMCFNetworkDesignBlock.o: \
 	$(MMCFSDR)/src/MMCFNetworkDesignBlock.cpp \
 	$(MMCFSDR)/include/MMCFNetworkDesignBlock.h \
-	$(MMCFSDR)/include/MMCFBlock.h $(SMS++OBJ)
+	$(MMCFSDR)/include/MMCFBlock.h $(MCFBkH) $(BKBkH) $(SMS++OBJ)
 	$(CC) -c $(MMCFSDR)/src/MMCFNetworkDesignBlock.cpp -o $@ $(MMCFINC) \
-	$(SMS++INC) $(SW)
+	$(MCFBkINC) $(BKBkINC) $(SMS++INC) $(SW)
 
 ########################## End of makefile ###################################

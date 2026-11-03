@@ -279,7 +279,7 @@ void MMCFNetworkDesignBlock::set_subproblem_capacities(
     nu.push_back( U[ k ][ j ] * y[ j ] );
     }
   if( ! nms.empty() )
-   mk->chg_ucaps( nu.cbegin() , std::move( nms ) , true );
+   mk->chg_ucaps( MF_dbl_sp( nu ) , std::move( nms ) , true );
   }
 
  v_ylast = y;
@@ -425,9 +425,7 @@ Solution * MMCFNetworkDesignBlock::get_Solution( Configuration * solc ,
 
 void MMCFNetworkDesignBlock::guts_of_destructor( void )
 {
- for( auto & c : v_cuts )
-  c.clear();
- v_cuts.clear();
+ Constraint::clear( v_cuts );
  f_obj.clear();
  reset_objective();
 

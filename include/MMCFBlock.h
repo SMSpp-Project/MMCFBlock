@@ -86,7 +86,7 @@ namespace SMSpp_di_unipi_it
  *  @{ */
 
 /*--------------------------------------------------------------------------*/
-/*-------------------------- CLASS MMCFBlock ------------------------------*/
+/*-------------------------- CLASS MMCFBlock -------------------------------*/
 /*--------------------------------------------------------------------------*/
 /*--------------------------- GENERAL NOTES --------------------------------*/
 /*--------------------------------------------------------------------------*/
@@ -380,15 +380,15 @@ class MMCFBlock : public Block
   return( f_sense );
   }
   
-  /*--------------------------------------------------------------------------*/
+  /*------------------------------------------------------------------------*/
 
 
  /// get the flow of a given arc for a given commodity 
  /** Given a commodity index k and an arc index ij, this function provides
   * the value of the associated variable x^k_ij. In the case of the knapsack
   * relaxation, the variables of the block are rescaled in such a way that
-  * x \in [ 0 , 1 ]. In this case the functions get_flow provide the values
-  * already rescaled wigth x^k_{ij} in [ 0 , u_ij ]. */
+  * \f$ x \in [ 0 , 1 ] \f$. In this case the functions get_flow provide the
+  * values already rescaled with \f$ x^k_{ij} \in [ 0 , u_{ij} ] \f$. */
 
  double get_flow( Index k , Index i ) const {
   if( ! ( AR & HasVar ) )
@@ -542,12 +542,12 @@ class MMCFBlock : public Block
 
  void set_design_variables( std::vector< ColVariable > * DV );
 
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the coefficient of y_j in the mutual capacity constraint of arc j
 
  [[nodiscard]] FNumber get_design_capacity( Index j ) const;
 
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the coefficient of y_j in the forcing constraint of arc j for k
 
  [[nodiscard]] FNumber get_design_capacity( Index k , Index j ) const;
@@ -594,7 +594,7 @@ class MMCFBlock : public Block
 /*--------------------------------------------------------------------------*/
  /// change the demands of a contiguous interval of commodities
  /** Changes the demand of the commodities rng.first + h, for all 0 <= h <
-  * rng.second - rng.first, to *( NDem + h ): the deficits of the nodes of
+  * rng.second - rng.first, to NDem[ h ]: the deficits of the nodes of
   * commodity k are all multiplied by the ratio between its new demand and
   * its current one, i.e., the sum of its positive deficits, so that where
   * the demand of the commodity is supplied and delivered does not change
@@ -605,26 +605,14 @@ class MMCFBlock : public Block
   * and to the deficits of the MCFBlock of the commodity otherwise (flow
   * structure, according to \p issueMod). A commodity with no demand is
   * left alone, since there is nothing to scale. Any rng.second >=
-  * get_NComm() means "up until the end". This is the method a DataMapping
-  * of a StochasticBlock calls to make the demands uncertain. */
+  * get_NComm() means "up until the end", and \p NDem has to be at least
+  * as long as what is left of \p rng (std::invalid_argument is thrown if
+  * it is shorter). This is the method a DataMapping of a StochasticBlock
+  * calls to make the demands uncertain. */
 
  void chg_demands( MF_dbl_sp NDem , Range rng = INFRange ,
                    ModParam issueMod = eNoBlck ,
                    ModParam issueAMod = eNoBlck );
-
-/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
- /// change the demands of a contiguous interval, iterator form
- /** As the span form, \p NDem pointing to the first of the new values; its
-  * length is taken from \p rng, restricted to what there is. */
-
- void chg_demands( MF_dbl_it NDem , Range rng = INFRange ,
-                   ModParam issueMod = eNoBlck ,
-                   ModParam issueAMod = eNoBlck ) {
-  rng.second = std::min( rng.second , get_NComm() );
-  if( rng.second > rng.first )
-   chg_demands( MF_dbl_sp( & * NDem , rng.second - rng.first ) , rng ,
-                issueMod , issueAMod );
-  }
 
 /*--------------------------------------------------------------------------*/
 
@@ -690,8 +678,9 @@ void chg_fixed_costs( int seed , double lambda )
  ///< second bit of AR == 1 if the Mutual Constraints has been constructed
 
  static constexpr unsigned char KnapsackRelaxation = 4;
- /**< third bit of AR == 1
-   * - [1]: the standard knapsack formulation in which get_NArcs()
+ /**< third bit of AR == 1:
+  *
+  * - [1]: the standard knapsack formulation in which get_NArcs()
   *   BinaryKnapsackBlock sub-Block are constructed, one for each commodity,
   *   and the flow constraints are handled in the father MMCFBlock;
   *
@@ -776,12 +765,10 @@ void chg_fixed_costs( int seed , double lambda )
 
 /*--------------------------------------------------------------------------*/
  /// registers the methods that change the data into the method factory
- /** Registers chg_demands() (both the iterator and the span form) into the
-  * method factory, so that a DataMapping can call it by name. */
+ /** Registers chg_demands() into the method factory, so that a DataMapping
+  * can call it by name. */
 
  static void static_initialization( void ) {
-  register_method< MMCFBlock , MF_dbl_it , Range >(
-   "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
   register_method< MMCFBlock , MF_dbl_sp , Range >(
    "MMCFBlock::chg_demands" , & MMCFBlock::chg_demands );
   }
@@ -800,7 +787,7 @@ void chg_fixed_costs( int seed , double lambda )
 
 /*--------------------------------------------------------------------------*/
 
-/*@}  end( group( MMCFBlock_CLASSES ) ) -----------------------------------*/
+/*@}  end( group( MMCFBlock_CLASSES ) ) ------------------------------------*/
 /*--------------------------------------------------------------------------*/
 
  }  // end( namespace SMSpp_di_unipi_it )

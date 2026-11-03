@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-03
+
+### Added
+
+- the makefiles build the C++20 module `smspp.mmcfblock` when `SMSppMOD` is
+  not empty (e.g., `make SMSppMOD=1`), with clang++ 16 or later [see
+  `lib/makefile-mod` of SMS++]
+
+- the C++20 module `smspp.mmcfblock` (`src/MMCFBlock.cppm`), which exports
+  every name that the headers declare at namespace scope and re-exports
+  `smspp.binaryknapsackblock` and `smspp.mcfblock`, so that a source file
+  can write `import smspp.mmcfblock;` in place of the `#include` of the
+  headers; it is built with the CMake option `SMSpp_BUILD_MODULE`, as the
+  target `SMS++::MMCFBlock_module`
+
+### Changed
+
+- the README leaves the channels that distribute SMS++ to the
+  installation guide of the wiki (Installing-SMS++), keeping the names
+  of the packages of the module
+
+- the pipeline builds the module also with its makefiles, after CMake, and
+  runs on a change of the makefiles too [see `ci/makefile` of the umbrella]
+
+- `SMSpp_BUILD_MODULE` no longer stops the configuration when the C++20
+  module cannot be built, i.e., with a CMake older than 3.28, a generator
+  other than Ninja or Visual Studio, a compiler other than Clang 16 (with
+  `clang-scan-deps`) or MSVC 19.34, or a module it imports that is not
+  there: the option is turned off with a warning that says why, and the
+  build goes on with the headers [see `cmake/CheckModule.cmake` of SMS++]
+
+### Removed
+
+- the form of `chg_demands()` taking an iterator, and its registration in
+  the methods factory: the span form checks its length against the Range,
+  throwing `std::invalid_argument` if it is shorter
+
+### Fixed
+
+- with the compilers of MinGW (MSYS2) the target asks whoever links it
+  for the symbol that forces the module in, as with MSVC and on macOS:
+  the linker imports a DLL only for the symbols asked for, so that a
+  program that used none had the module left out and its classes
+  missing from the factory
+
+- `makefile` compiles with the -I of MCFBlock and BinaryKnapsackBlock,
+  which it takes in input as the other basic makefiles do: it relied on
+  `makefile-s` adding them to `MMCFINC` afterwards, so that whoever
+  included it with MCFBlock and BinaryKnapsackBlock already there (e.g.,
+  next to CapacitatedFacilityLocationBlock) did not compile
+
 ## [0.5.0] - 2026-10-09
 
 ### Added
@@ -119,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - First test release.
 
-[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.5.0...develop
+[Unreleased]: https://gitlab.com/smspp/mmcfblock/-/compare/0.6.0...develop
+[0.6.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.5.0...0.6.0
 [0.5.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.4.0...0.5.0
 [0.4.0]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.1...0.4.0
 [0.3.1]: https://gitlab.com/smspp/mmcfblock/-/compare/0.3.0...0.3.1

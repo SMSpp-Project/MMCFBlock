@@ -1,5 +1,11 @@
 # MMCFBlock
 
+[![Pipeline](https://gitlab.com/smspp/mmcfblock/badges/develop/pipeline.svg)](https://gitlab.com/smspp/mmcfblock/-/pipelines?ref=develop)
+[![Release](https://gitlab.com/smspp/mmcfblock/-/badges/release.svg)](https://gitlab.com/smspp/mmcfblock/-/releases)
+[![Documentation](https://img.shields.io/badge/docs-Doxygen-blue)](https://smspp.gitlab.io/smspp-project/)
+[![C++ Standard](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://en.cppreference.com/w/cpp/20)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+
 (So far, only a rough sketch of) a `Block` for Multicommodity Min-Cost
 Flow (MMCF) and Multicommodity Network Design problems.
 
@@ -31,22 +37,11 @@ stages of the development.
 
 These instructions will let you build `MMCFBlock` on your system.
 
-The module also comes ready-made, in any of
-
-```sh
-sudo add-apt-repository ppa:smspp-project/smspp   # Ubuntu
-sudo apt install libsmspp-mmcf-dev                # and smspp-mmcf for the tool
-
-conda install -c conda-forge smspp-project        # Linux, macOS, Windows
-
-brew tap SMSpp-Project/smspp                      # macOS, Linux
-brew install smspp
-
-vcpkg install "smspp[core,mmcf]"                  # from the sources
-```
-
-where apt and the port give the module alone, while conda and the tap carry
-the whole framework. What follows is about building it yourself.
+The module also comes ready-made: on Ubuntu as `libsmspp-mmcf-dev` (and
+`smspp-mmcf` for the tool), in vcpkg as `smspp[core,mmcf]`, and in the other
+channels that the [installation
+guide](https://gitlab.com/smspp/smspp-project/-/wikis/Installing-SMS++) of
+SMS++ lists. What follows is about building it yourself.
 
 ### Requirements
 
