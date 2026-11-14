@@ -80,7 +80,8 @@ void MMCFNetworkDesignBlock::serialize( netCDF::NcGroup & group ) const
 
 /*--------------------------------------------------------------------------*/
 
-void MMCFNetworkDesignBlock::generate_abstract_variables( Configuration * stvv )
+void MMCFNetworkDesignBlock::generate_abstract_variables(
+						     Configuration * stvv )
 {
  static const std::string _prfx =
                       "MMCFNetworkDesignBlock::generate_abstract_variables: ";
@@ -249,7 +250,7 @@ void MMCFNetworkDesignBlock::generate_objective( Configuration * objc )
 /*--------------------------------------------------------------------------*/
 
 void MMCFNetworkDesignBlock::set_subproblem_capacities(
-					        const std::vector< double > & y )
+					      const std::vector< double > & y )
 {
  const Index m = v_y.size();
  const auto & UTot = f_sub->get_UTot();
