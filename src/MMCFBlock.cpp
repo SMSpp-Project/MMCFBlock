@@ -1272,7 +1272,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
 					   ) );
     MCs[ j ].set_rhs( 0 );
     MCs[ j ].set_lhs( -Inf< double >() );
-    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) ,
+					       0 ) );
     }
 
    // and the forcing ones, x^k_j - ubar^k_j y_j <= 0, for the existing arcs
@@ -1289,7 +1290,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
       if( C[ k ][ j ] < Inf< CNumber >() ) {
        LinearFunction::v_coeff_pair p( 2 );
        p[ 0 ] = std::make_pair(
-	    static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) , double( 1 ) );
+	    static_cast< MCFBlock * >( v_Block[ k ] )->i2p_x( j ) ,
+	    double( 1 ) );
        p[ 1 ] = std::make_pair( & ( *v_design )[ j ] ,
 				- double( get_design_capacity( k , j ) ) );
        dc->set_rhs( 0 );
@@ -1320,7 +1322,8 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
      throw( std::logic_error( "Constraint required to have a finite rhs" ) );
     MCs[ j ].set_rhs( UTot[ j ] );
     MCs[ j ].set_lhs( -Inf< double >() );
-    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) , 0 ) );
+    MCs[ j ].set_function( new LinearFunction( std::move( coeffs[ j ] ) ,
+					       0 ) );
     }
    }
 
@@ -1362,9 +1365,11 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
     if( Startn[ i ] == Endn[ i ])
      continue;
     coeffs[ k ][ Startn[ i ] - 1 ][ count[ k ][ Startn[ i ] - 1 ]++ ] =
-     std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k )) , double( U[ k ][ i ] ) );
+     std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )
+                       ->get_Var( k )) , double( U[ k ][ i ] ) );
     coeffs[ k ][ Endn[ i ] - 1 ][ count[ k ][ Endn[ i ] - 1 ]++ ] =
-     std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k )) , double( - U[ k ][ i ]  )  ) ;
+     std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )
+                       ->get_Var( k )) , double( - U[ k ][ i ]  )  ) ;
     }
    }
 
@@ -1391,9 +1396,11 @@ void MMCFBlock::generate_abstract_constraints( Configuration * stcc )
    for( Index k = 0 ; k < get_NComm() ; ++k ) {
     for(  Index i = 0; i < get_NArcs() ; ++i ) {
      coeffsSLC[ k ][ i ][ 0 ] =
-      std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( k )) , double( 1 ) );
+      std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )
+                        ->get_Var( k )) , double( 1 ) );
      coeffsSLC[ k ][ i ][ 1 ] =
-      std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )->get_Var( get_NComm() )) , double( -1 )  );
+      std::make_pair( ( static_cast< BinaryKnapsackBlock * >( v_Block[ i ] )
+                        ->get_Var( get_NComm() )) , double( -1 )  );
      }
     }
 
