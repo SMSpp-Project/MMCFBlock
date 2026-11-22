@@ -58,4 +58,8 @@ MMCFINC := $(SMS++INC) $(BKBkINC) $(MCFBkINC) $(MMCFINC)
 # external libraries for MMCFBlock
 MMCFLIB = $(SMS++LIB) $(MCFBkLIB)
 
+# the objects as the shared libraries of the module and of those whose
+# objects it takes [see SMS++/lib/makefile-shared]
+$(eval $(call SMSppSOlib,MMCF))
+
 ########################### End of makefile-c ################################
