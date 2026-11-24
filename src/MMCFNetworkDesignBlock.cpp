@@ -103,16 +103,18 @@ void MMCFNetworkDesignBlock::generate_abstract_variables(
    f_form = c->f_value.first;
    f_slack_scale = c->f_value.second;
    }
- if( ( f_form != kMonolithic ) && ( f_form != kBenders ) )
+ if( ( f_form != kMonolithic ) && ( f_form != kBenders ) &&
+     ( f_form != kArc ) )
   throw( std::invalid_argument( _prfx + "unknown formulation " +
 				std::to_string( f_form ) ) );
 
- // the design Variable- - - - - - - - - - - - - - - - - - - - - - - - - - -
- const Index m = f_mmcf->get_NArcs();
- v_y.resize( m );
- for( auto & y : v_y )
-  y.set_type( ColVariable::kBinary , eNoMod );
- add_static_variable( v_y , "y" );
+ // the design Variable, but in kArc, where they are in the sub-Block - - -
+ if( f_form != kArc ) {
+  v_y.resize( f_mmcf->get_NArcs() );
+  for( auto & y : v_y )
+   y.set_type( ColVariable::kBinary , eNoMod );
+  add_static_variable( v_y , "y" );
+  }
 
  if( f_form == kMonolithic ) {
   // the MMCFBlock is the sub-Block, with the flow structure (its default),
@@ -120,6 +122,13 @@ void MMCFNetworkDesignBlock::generate_abstract_variables(
   add_nested_Block( f_mmcf );
   f_mmcf->generate_abstract_variables();
   f_mmcf->set_design_variables( & v_y );
+  }
+ else if( f_form == kArc ) {
+  // the MMCFBlock is the sub-Block, with one BinaryKnapsackBlock per arc
+  // whose last item is the design Variable of the arc
+  add_nested_Block( f_mmcf );
+  f_mmcf->set_knapsack_structure( true );
+  f_mmcf->generate_abstract_variables();
   }
  else {
   // the epigraph Variable of the cost of the flow, and the hidden copy
@@ -173,7 +182,7 @@ void MMCFNetworkDesignBlock::generate_abstract_constraints(
  if( ! ( AR & HasVar ) )
   generate_abstract_variables();
 
- if( f_form == kMonolithic ) {
+ if( f_form != kBenders ) {
   // the Configuration of the constraints is the one of the MMCFBlock, e.g.,
   // whether it has the forcing ones [see MMCFBlock::set_design_variables()]
   if( ( ! stcc ) && f_BlockConfig )
@@ -228,6 +237,7 @@ void MMCFNetworkDesignBlock::generate_objective( Configuration * objc )
  if( ! ( AR & HasVar ) )
   generate_abstract_variables();
 
+ // in kArc the fixed costs are in the BinaryKnapsackBlock, and v_y is empty
  const auto & F = f_mmcf->get_F();
  LinearFunction::v_coeff_pair coeffs;
  for( Index j = 0 ; j < v_y.size() ; ++j )
@@ -240,11 +250,31 @@ void MMCFNetworkDesignBlock::generate_objective( Configuration * objc )
  f_obj.set_sense( Objective::eMin , eNoMod );
  set_objective( & f_obj );
 
- // the costs of the flow are in the MCFBlock, in kMonolithic
- if( f_form == kMonolithic )
+ // the costs of the flow are in the sub-Block of the MMCFBlock, but in
+ // kBenders
+ if( f_form != kBenders )
   f_mmcf->generate_objective();
 
  AR |= HasObj;
+ }
+
+/*--------------------------------------------------------------------------*/
+
+ColVariable * MMCFNetworkDesignBlock::get_y( Index j )
+{
+ if( f_form != kArc )
+  return( & v_y[ j ] );
+
+ if( ! ( AR & HasVar ) )
+  return( nullptr );
+
+ // the item after the flows of the commodities, if the fixed costs gave it
+ const Index nc = f_mmcf->get_NComm();
+ auto bk = static_cast< BinaryKnapsackBlock * >(
+					       f_mmcf->get_nested_Block( j ) );
+ if( ( ! bk ) || ( bk->get_NItems() <= nc ) )
+  return( nullptr );
+ return( bk->get_Var( nc ) );
  }
 
 /*--------------------------------------------------------------------------*/
@@ -436,7 +466,7 @@ void MMCFNetworkDesignBlock::guts_of_destructor( void )
   f_sub = nullptr;
   }
 
- // in kMonolithic the MMCFBlock is a sub-Block, and Block deletes it
+ // but in kBenders the MMCFBlock is a sub-Block, and Block deletes it
  if( ! v_Block.empty() )
   reset_nested_Block();
  else

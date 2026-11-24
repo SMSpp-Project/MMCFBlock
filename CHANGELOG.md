@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- the arc formulation of `MMCFNetworkDesignBlock` (formulation 2), whose
+  sub-Block is the `MMCFBlock` with one `BinaryKnapsackBlock` per arc holding
+  the flows of the arc and its design variable, so that a
+  `LagrangianDualSolver` with `intRecursive` relaxing the flow conservation
+  constraints solves one knapsack per arc and gives the strong bound of the
+  problem; `MMCFBlock::set_knapsack_structure()` sets the structure of an
+  `MMCFBlock` from the code of the Block that holds it
+
 ### Changed
 
 - the makefiles give the shared library of the module by default, a DLL on

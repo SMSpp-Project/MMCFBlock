@@ -59,9 +59,9 @@ namespace SMSpp_di_unipi_it
  * \f$ \bar{u}_j \f$ and \f$ \bar{u}^k_j \f$ are the capacities that
  * MMCFBlock::get_design_capacity() gives.
  *
- * The MMCFNetworkDesignBlock only defines the design Variable y (and their
- * part of the Objective), and it has two formulations, chosen by the int of
- * the Configuration of its static Variable [see
+ * The MMCFNetworkDesignBlock defines the design Variable y (and their part
+ * of the Objective) in the first two of its three formulations, chosen by
+ * the int of the Configuration of its static Variable [see
  * generate_abstract_variables()]:
  *
  * - 0, "monolithic": the MMCFBlock is the (only) sub-Block, with the flow
@@ -81,7 +81,43 @@ namespace SMSpp_di_unipi_it
  *   commodity as a change of the capacities (closing the arcs with y_j = 0),
  *   and the Solver registered to the copy (typically a LagrangianDualSolver
  *   that relaxes the mutual capacities, with a MCF Solver per commodity) is
- *   run.
+ *   run;
+ *
+ * - 2, "arc": the MMCFBlock is the (only) sub-Block, with the knapsack
+ *   structure, i.e., one BinaryKnapsackBlock per arc [see
+ *   MMCFBlock::set_structure()], whose items are the flows of the
+ *   commodities on the arc, scaled by their individual capacities u^k_j
+ *   (which have to be finite), and the design Variable of the arc, an
+ *   integer item of cost F_j and weight \f$ - \bar{u}_j \f$ in a knapsack
+ *   of capacity 0. Hence, the y are those of the BinaryKnapsackBlock [see
+ *   get_y()], the MMCFNetworkDesignBlock has no Variable of its own and an
+ *   Objective without Variable, and the flow conservation constraints are
+ *   in the MMCFBlock. If the fixed costs are all 0 there is no design item,
+ *   and the capacity of each knapsack is \f$ \bar{u}_j \f$.
+ *
+ * The arc formulation is the one of the Lagrangian relaxation of the flow
+ * conservation constraints: a LagrangianDualSolver attached to the
+ * MMCFNetworkDesignBlock, with intRecursive set so that the MMCFBlock is
+ * decomposed in turn, has one subproblem per arc
+ * \f[
+ *  \min \Bigl\{ F_j y_j + \sum_{ k } \tilde{c}^k_j x^k_j \;:\;
+ *  \sum_{ k } x^k_j \leq \bar{u}_j y_j \;,\;
+ *  0 \leq x^k_j \leq u^k_j \;,\; y_j \in \{ 0 , 1 \} \Bigr\} \;,
+ * \f]
+ * \f$ \tilde{c} \f$ being the Lagrangian costs, i.e., a continuous knapsack
+ * if y_j = 1, which a Solver of the BinaryKnapsackBlock (say,
+ * CoreDPBinaryKnapsackSolver) solves by sorting the commodities, the arc
+ * being opened if the value is negative. The convex hull of the feasible
+ * set of the subproblem is given by \f$ x^k_j \leq u^k_j y_j \f$ and the
+ * mutual capacity constraint, hence the bound is that of the continuous
+ * relaxation of the monolithic formulation with the forcing constraints
+ * (the "strong" one) whenever \f$ u^k_j = \bar{u}^k_j \f$, as in the Canad
+ * instances, and a weaker one otherwise [see B. Gendron, T.G. Crainic, A.
+ * Frangioni, "Multicommodity Capacitated Network Design", in
+ * Telecommunications Network Planning, Kluwer, 1999, and T.G. Crainic, A.
+ * Frangioni, B. Gendron, "Bundle-based relaxation methods for multicommodity
+ * capacitated fixed charge network design", Discrete Applied Mathematics
+ * 112, 2001].
  *
  * The Benders cut is obtained by weak duality, and hence it is valid
  * whatever the precision of that Solver: given the multipliers lambda >= 0
@@ -119,7 +155,8 @@ class MMCFNetworkDesignBlock : public Block
  /// the formulations of the MMCFNetworkDesignBlock
  enum formulation_type {
   kMonolithic = 0 ,  ///< the MMCFBlock is the sub-Block
-  kBenders = 1       ///< y, v and the Benders cuts of a hidden copy
+  kBenders = 1 ,     ///< y, v and the Benders cuts of a hidden copy
+  kArc = 2           ///< the MMCFBlock with one BinaryKnapsackBlock per arc
   };
 
 /*--------------------------------------------------------------------------*/
@@ -171,17 +208,18 @@ class MMCFNetworkDesignBlock : public Block
   * default; if \p stvv is nullptr, it is taken from the BlockConfig, and
   * the default is kMonolithic. In kBenders, this also constructs the
   * hidden copy and applies to it the extra Configuration of the
-  * BlockConfig. */
+  * BlockConfig; in kArc, the design Variable are those of the sub-Block of
+  * the MMCFBlock, and the MMCFNetworkDesignBlock has none. */
 
  void generate_abstract_variables( Configuration * stvv = nullptr )
   override;
 
 /*--------------------------------------------------------------------------*/
  /// generates the constraints: those of the MMCFBlock, or the first cut
- /** In kMonolithic, the constraints of the MMCFBlock, to which \p stcc is
-  * passed [see MMCFBlock::generate_abstract_constraints()]; in kBenders,
-  * the (empty) group of the Benders cuts, and the cut at y = 1, so that
-  * the Objective is bounded from the start. */
+ /** In kMonolithic and kArc, the constraints of the MMCFBlock, to which
+  * \p stcc is passed [see MMCFBlock::generate_abstract_constraints()]; in
+  * kBenders, the (empty) group of the Benders cuts, and the cut at y = 1,
+  * so that the Objective is bounded from the start. */
 
  void generate_abstract_constraints( Configuration * stcc = nullptr )
   override;
@@ -198,6 +236,8 @@ class MMCFNetworkDesignBlock : public Block
 
 /*--------------------------------------------------------------------------*/
  /// the Objective: the fixed costs of the open arcs, and v in kBenders
+ /** In kArc the fixed costs are in the sub-Block of the MMCFBlock, and the
+  * Objective of the MMCFNetworkDesignBlock has no Variable. */
 
  void generate_objective( Configuration * objc = nullptr ) override;
 
@@ -222,8 +262,11 @@ class MMCFNetworkDesignBlock : public Block
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the design Variable of arc j
+ /** In kArc, the last item of the BinaryKnapsackBlock of arc j, or nullptr
+  * if it has none (the fixed costs being all 0) or if the Variable have not
+  * been generated yet. */
 
- [[nodiscard]] ColVariable * get_y( Index j ) { return( & v_y[ j ] ); }
+ [[nodiscard]] ColVariable * get_y( Index j );
 
 /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
  /// the epigraph Variable of the cost of the flow, in kBenders
@@ -293,7 +336,7 @@ class MMCFNetworkDesignBlock : public Block
 /*---------------------------- PRIVATE FIELDS ------------------------------*/
 /*--------------------------------------------------------------------------*/
 
- MMCFBlock * f_mmcf = nullptr;   ///< the data, the sub-Block in kMonolithic
+ MMCFBlock * f_mmcf = nullptr;   ///< the data, the sub-Block but in kBenders
  MMCFBlock * f_sub = nullptr;    ///< the hidden copy of kBenders
 
  int f_form = kMonolithic;       ///< the formulation

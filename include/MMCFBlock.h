@@ -282,6 +282,17 @@ class MMCFBlock : public Block
 
  void set_structure( Configuration * strc = nullptr ) override;
 
+/*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+ /// sets the knapsack structure if \p knap, the flow one otherwise
+ /** The same as set_structure() with a SimpleConfiguration< int > of value
+  * 1 (\p knap == true) or 0, for a Block that has the MMCFBlock as a
+  * sub-Block and whose own formulation implies the structure of the latter
+  * [see MMCFNetworkDesignBlock]. */
+
+ void set_knapsack_structure( bool knap ) {
+  guts_of_set_structure( knap ? KnapsackRelaxation : 0 );
+  }
+
 /*--------------------------------------------------------------------------*/
 
  void generate_abstract_constraints( Configuration * stcc = nullptr )
