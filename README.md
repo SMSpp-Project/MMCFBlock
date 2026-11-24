@@ -121,13 +121,17 @@ conduct, and the process for submitting merge requests to us.
 
 ## Authors
 
+- **Francesca Demelas**  
+  Laboratoire d'Informatique de Paris Nord  
+  Universite' Sorbonne Paris Nord
+
 - **Enrico Gorgone**  
   Dipartimento di Matematica e Informatica  
   Università di Cagliari
 
-- **Francesca Demelas**  
-  Laboratoire d'Informatique de Paris Nord  
-  Universite' Sorbonne Paris Nord
+- **Donato Meoli**  
+  Dipartimento di Informatica  
+  Università di Pisa
 
 ### Contributors
 
